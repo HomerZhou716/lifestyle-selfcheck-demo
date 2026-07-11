@@ -1,0 +1,1673 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>生活方式自检 · 21天习惯营 · 2.0 演示</title>
+<style>
+/* ================= tokens ================= */
+:root{
+  /* C端 · 素瓷·晴序（2.0 定稿：老板拍板 B 方向） */
+  --paper:#f2f5f2; --paper2:#e8ece8; --card:#ffffff;
+  --ink:#22332c; --ink2:#5c6b64; --ink3:#8a968f;
+  --green:#256b5d; --green-d:#1c554a; --green-l:#8fc2b2; --green-wash:#eef4f1;
+  --clay:#2e5e73; --clay-d:#24485a; --clay-wash:#e7eef2;
+  --good:#2f7d5d; --warn:#9a5713; --soft:#d3dbd6;
+  --line:#e3e8e4; --line2:#cfd8d2; --hairline:rgba(34,51,44,.08);
+  /* B端 · 深色工具 */
+  --bbg:#0f1419; --bpanel:#1a212b; --bpanel2:#212b38; --bline:#2c3846;
+  --bink:#e7edf3; --bink2:#a9b7c6; --bink3:#6b7a8d;
+  --brand:#2f9d84; --brand2:#63c2ab; --bgood:#22c55e; --bwarn:#f59e0b; --bbad:#ef4444;
+  --shadow:0 1px 2px rgba(34,51,44,.04),0 14px 34px rgba(34,51,44,.08);
+  --shadow-sm:0 1px 2px rgba(34,51,44,.04),0 10px 28px rgba(34,51,44,.06);
+  --bshadow:0 8px 30px rgba(0,0,0,.35);
+  --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  --serif:'Songti SC','STSong','Noto Serif SC',Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  --r:16px; --rs:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;min-height:100vh}
+body[data-role="b"]{background:var(--bbg);color:var(--bink)}
+h1,h2,h3,h4{margin:0;font-weight:700;line-height:1.3;text-wrap:balance}
+p{margin:0}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:inherit}
+input,select,textarea{font-family:inherit;font-size:14px}
+.hide{display:none!important}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ================= 演示控制条 ================= */
+#demobar{position:sticky;top:0;z-index:60;background:#26221c;color:#cbc2b2;padding:7px 10px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+#demobar .tag{font-size:10px;font-weight:800;letter-spacing:.08em;color:#26221c;background:var(--clay);
+  padding:2px 7px;border-radius:5px;flex:0 0 auto}
+.segtog{display:inline-flex;background:#3a342b;border-radius:9px;padding:2px;gap:2px}
+.segtog button{padding:4px 10px;border-radius:7px;font-size:12px;color:#a99f8d;font-weight:600;transition:.15s}
+.segtog button.on{background:#f0e9dc;color:#26221c}
+#daydial{display:inline-flex;gap:2px;background:#3a342b;border-radius:9px;padding:2px}
+#daydial button{padding:4px 8px;border-radius:7px;font-size:11.5px;color:#a99f8d;font-weight:700}
+#daydial button.on{background:var(--green-l);color:#0c261d}
+#demobar .rst{margin-left:auto;font-size:11.5px;color:#a99f8d;text-decoration:underline;text-underline-offset:3px}
+
+/* ================= 诚实 banner ================= */
+#honest{background:#41372a;color:#d8cfbe;font-size:11.5px;line-height:1.5;padding:7px 12px;text-align:center}
+#honest b{color:#fff}
+body[data-role="b"] #honest{background:#101720;color:#8fa0b3;border-bottom:1px solid var(--bline)}
+
+/* ================= C端 布局 ================= */
+#view-c{max-width:520px;margin:0 auto;padding:18px 16px 110px}
+.foot-note{font-size:11px;color:var(--ink3);line-height:1.55;text-align:center;margin:26px 4px 0;
+  padding-top:12px;border-top:1px dashed var(--line2)}
+.c-card{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r);
+  box-shadow:var(--shadow-sm);padding:18px;margin-top:14px}
+.c-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:9px}
+.cbtn{display:block;width:100%;background:var(--green);color:#fff;border-radius:14px;padding:14px;
+  font-size:16px;font-weight:700;text-align:center;transition:transform .06s,filter .15s;box-shadow:0 6px 16px rgba(37,107,93,.22)}
+.cbtn:active{transform:scale(.97)}
+.cbtn.sec{background:var(--card);color:var(--green-d);border:1.5px solid var(--green);box-shadow:none}
+.cbtn.ghost{background:none;color:var(--ink2);box-shadow:none;font-weight:600;font-size:14px}
+.cbtn.clay{background:var(--clay);box-shadow:0 6px 16px rgba(46,94,115,.22)}
+.cbtn:disabled{opacity:.45}
+.lock-line{display:flex;gap:7px;align-items:flex-start;font-size:12.5px;color:var(--green-d);
+  background:var(--green-wash);border-radius:10px;padding:9px 12px;line-height:1.5}
+.small-note{font-size:11.5px;color:var(--ink3);line-height:1.55;margin-top:8px}
+
+/* 素瓷·晴序 组件 */
+.cred{display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--hairline);
+  border-left:4px solid var(--green);border-radius:12px;padding:11px 14px;box-shadow:var(--shadow-sm);margin-top:10px}
+.cred b{font-size:14.5px}
+.cred p{font-size:12.5px;color:var(--ink2)}
+.kilnmark{width:88px;height:88px;border-radius:50%;border:1px solid var(--green);display:grid;place-items:center;
+  position:relative;margin:24px auto 4px}
+.kilnmark::before{content:"";position:absolute;inset:5px;border:2px solid var(--green);border-radius:50%}
+.kilnmark span{font-family:var(--serif);font-size:34px;color:var(--green-d);font-weight:600;position:relative}
+.crackle{position:relative;overflow:hidden}
+.crackle::before,.crackle::after{content:"";position:absolute;height:1px;left:-8%;right:-8%;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(46,94,115,.28) 32%,rgba(46,94,115,.1) 68%,transparent)}
+.crackle::before{top:32%;transform:rotate(-13deg)}
+.crackle::after{top:66%;transform:rotate(8deg)}
+.chip-sign{display:table;margin:18px auto -4px;background:var(--green-wash);color:var(--green-d);
+  font-size:12px;font-weight:700;border-radius:999px;padding:5px 13px}
+.glaze-dot{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;
+  padding:3px 9px;border-radius:999px;margin-top:2px}
+.glaze-dot::before{content:"";width:10px;height:10px;border-radius:50%;background:currentColor}
+.glaze-dot.g{color:var(--good);background:rgba(47,125,93,.09)}
+.glaze-dot.y{color:var(--warn);background:rgba(154,87,19,.09)}
+.glaze-dot.o{color:#a1522d;background:rgba(161,82,45,.1)}
+.sticky-priv{position:sticky;z-index:45}
+.badge .kchar{width:42px;height:42px;margin:0 auto;border-radius:50%;border:1px solid var(--soft);
+  display:grid;place-items:center;font-family:var(--serif);font-size:15px;color:var(--ink3);position:relative}
+.badge .kchar::before{content:"";position:absolute;inset:4px;border:2px solid currentColor;border-radius:50%;opacity:.45}
+.badge.lit .kchar{color:var(--green-d);border-color:var(--green-l);background:var(--green-wash)}
+
+/* 欢迎页 */
+.hero-title{font-family:var(--serif);font-size:clamp(26px,7vw,34px);font-weight:600;line-height:1.2;margin-top:18px}
+.hero-title em{font-style:normal;color:var(--green-d);position:relative}
+.hero-title em::after{content:"";position:absolute;left:-1px;right:-1px;bottom:2px;height:9px;background:var(--green-wash);z-index:-1;border-radius:3px}
+.hero-sub{color:var(--ink2);font-size:14.5px;margin-top:10px;line-height:1.65}
+.trust-row{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+.trust-item{display:flex;gap:10px;align-items:center;font-size:13.5px;color:var(--ink2);font-weight:600}
+.trust-item .ic{font-size:17px}
+
+/* 问卷 */
+.rainbow{display:flex;gap:4px;margin-top:16px}
+.rainbow .seg{flex:1;height:8px;border-radius:5px;background:var(--paper2);position:relative;overflow:hidden}
+.rainbow .seg i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px;transition:width .3s}
+.rainbow .seg.done{animation:pop .4s}
+@keyframes pop{50%{transform:scaleY(1.7)}}
+.rainbow-lab{display:flex;gap:4px;margin-top:4px}
+.rainbow-lab span{flex:1;text-align:center;font-size:11px;opacity:.75}
+.q-num{font-size:12px;color:var(--ink3);font-weight:700;margin-top:20px}
+.q-text{font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.4;margin-top:6px;min-height:64px}
+.q-opts{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.q-opt{background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:13px 15px;
+  font-size:15px;text-align:left;transition:transform .06s,border-color .15s,background .15s;line-height:1.45}
+.q-opt:active{transform:scale(.97);border-color:var(--green);background:var(--green-wash)}
+.quiz-slide{animation:slidein .22s ease}
+@keyframes slidein{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+.dim-pass{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(247,243,234,.94);animation:fadein .2s}
+.dim-pass .big{font-size:64px;animation:zoomy .55s}
+.dim-pass p{font-size:17px;font-weight:700;color:var(--ink2);margin-top:8px}
+@keyframes zoomy{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* 报告 */
+.radar-wrap{display:grid;place-items:center;margin-top:6px}
+.lights{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.light-row{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:11px 13px}
+.light-row .dot{font-size:17px;flex:0 0 auto;margin-top:1px}
+.light-row .t b{font-size:14px}
+.light-row .t p{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-top:2px}
+.light-row .tip{font-size:11px;color:var(--ink3);margin-top:5px;border-top:1px dashed var(--line);padding-top:5px}
+.edu-card{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.edu-card summary{padding:11px 13px;font-size:13.5px;font-weight:700;cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center}
+.edu-card summary::after{content:"＋";margin-left:auto;color:var(--ink3)}
+.edu-card[open] summary::after{content:"－"}
+.edu-card .body{padding:0 13px 12px;font-size:12.5px;color:var(--ink2);line-height:1.6}
+.disclaim{background:var(--paper2);border-radius:10px;padding:10px 13px;font-size:11.5px;color:var(--ink2);line-height:1.55;margin-top:14px}
+
+/* 主题匹配 */
+.theme-card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;margin-top:12px;
+  display:flex;gap:13px;align-items:flex-start;transition:border-color .15s;cursor:pointer}
+.theme-card:active{border-color:var(--green)}
+.theme-card .ic{font-size:30px;flex:0 0 auto}
+.theme-card h4{font-size:16.5px}
+.theme-card .why{font-size:12.5px;color:var(--ink2);margin-top:4px;line-height:1.5}
+.theme-card .play{font-size:12px;color:var(--green-d);font-weight:700;margin-top:7px}
+.theme-card .demo-tag{font-size:10px;background:var(--paper2);color:var(--ink3);border-radius:5px;padding:1px 6px;
+  font-weight:700;margin-left:6px;vertical-align:2px}
+
+/* 入营 */
+.anchor-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.anchor-grid button{border:1.5px solid var(--line2);background:var(--card);border-radius:999px;padding:8px 14px;
+  font-size:13.5px;font-weight:600;color:var(--ink2)}
+.anchor-grid button.on{border-color:var(--green);background:var(--green-wash);color:var(--green-d)}
+.pact{font-family:var(--serif);font-size:16px;line-height:1.8;background:var(--card);border:1px dashed var(--line2);
+  border-radius:var(--r);padding:16px;margin-top:12px}
+.pact u{text-decoration-color:var(--green-l);text-underline-offset:4px;font-weight:700}
+.switch-row{display:flex;gap:11px;align-items:flex-start;padding:12px 0;border-top:1px dashed var(--line)}
+.switch-row:first-child{border-top:none}
+.sw{flex:0 0 46px;height:27px;border-radius:999px;background:var(--soft);position:relative;transition:.2s;border:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;
+  transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.sw.on{background:var(--green)}
+.sw.on::after{left:22px}
+.sw:disabled{opacity:.5;cursor:not-allowed}
+.switch-row .lab{font-size:12.5px;color:var(--ink2);line-height:1.55}
+.switch-row .lab b{color:var(--ink);font-size:13.5px}
+
+/* 营内 */
+#ctabbar{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(255,253,248,.95);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);display:flex;max-width:520px;margin:0 auto}
+#ctabbar button{flex:1;padding:9px 2px 10px;font-size:11px;color:var(--ink3);display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600}
+#ctabbar button .ic{font-size:20px}
+#ctabbar button.on{color:var(--green-d)}
+.streak-hero{text-align:center;padding:10px 0 4px}
+.streak-hero .n{font-family:var(--serif);font-size:56px;font-weight:700;color:var(--green-d);line-height:1}
+.streak-hero .n.bump{animation:bump .5s}
+@keyframes bump{40%{transform:scale(1.25)}}
+.streak-hero .lab{font-size:12.5px;color:var(--ink2);font-weight:600;margin-top:4px}
+.paper-stack{display:flex;align-items:flex-end;justify-content:center;gap:2px;height:34px;margin-top:8px}
+.paper-stack i{width:26px;background:var(--green-l);border-radius:2px;opacity:.9}
+.checkin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.checkin-grid button{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px 8px;
+  font-size:14px;font-weight:700;display:flex;flex-direction:column;gap:4px;align-items:center;transition:transform .06s}
+.checkin-grid button .ic{font-size:26px}
+.checkin-grid button:active{transform:scale(.95)}
+.checkin-grid button:disabled{opacity:.5}
+.quote-pop{background:var(--green-d);color:#eef7f2;border-radius:var(--r);padding:15px 17px;margin-top:12px;
+  font-family:var(--serif);font-size:16px;line-height:1.7;animation:zoomy .5s}
+.quote-pop small{display:block;font-family:var(--sans);font-size:11px;opacity:.8;margin-top:6px}
+.map21{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.map21 .cell{aspect-ratio:1;border-radius:8px;background:var(--paper2);display:grid;place-items:center;
+  font-size:15px;position:relative;border:1px solid var(--line)}
+.map21 .cell .d{position:absolute;top:2px;left:5px;font-size:8.5px;color:var(--ink3);font-weight:700}
+.map21 .cell.hit{background:linear-gradient(165deg,#dcebe4,#b7d8cb);border-color:#9cc6b8}
+.map21 .cell.sim{background:#eef2ef;border-style:dashed;opacity:.85}
+.map21 .cell.today{outline:2px solid var(--clay);outline-offset:1px}
+.feelmap i{background:#e9e2d2}
+.feelmap i.hit{background:var(--clay)}
+.badge-row{display:flex;gap:10px;margin-top:12px}
+.badge{flex:1;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 4px}
+.badge .ic{font-size:24px;filter:grayscale(1);opacity:.4}
+.badge.lit .ic{filter:none;opacity:1}
+.badge p{font-size:10.5px;color:var(--ink3);margin-top:3px;line-height:1.35;font-weight:600}
+.badge.lit p{color:var(--green-d)}
+.story-card{font-size:13.5px;color:var(--ink2);line-height:1.7;margin-top:8px}
+.story-card b{color:var(--ink)}
+.broadcast{background:linear-gradient(135deg,#2c3a33,#1f2b26);color:#d7e5dd;border-radius:var(--r);padding:15px 17px;margin-top:14px;font-size:13.5px;line-height:1.7}
+.broadcast .k{font-size:10.5px;letter-spacing:.14em;color:#8fb8a4;font-weight:700;margin-bottom:6px}
+.feel-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.feel-tags button{border:1.5px solid var(--line2);border-radius:999px;padding:6px 13px;font-size:12.5px;color:var(--ink2);background:var(--card)}
+.feel-tags button.on{border-color:var(--clay);background:var(--clay-wash);color:var(--clay-d);font-weight:700}
+.feel-input{width:100%;border:1.5px solid var(--line2);border-radius:11px;padding:10px 12px;margin-top:10px;
+  background:var(--card);resize:vertical;min-height:56px;line-height:1.5}
+.result-blocked{border:1.5px solid #c0392b;background:#fdf1ef;color:#8f2318;border-radius:11px;padding:10px 13px;
+  font-size:12.5px;line-height:1.55;margin-top:9px;animation:fadein .2s}
+.milestone{background:linear-gradient(135deg,var(--green-wash),#fffdf8);border:1.5px solid var(--green-l);
+  border-radius:var(--r);padding:16px;margin-top:14px;text-align:center}
+.milestone .ic{font-size:38px}
+.milestone h4{font-family:var(--serif);font-size:18px;margin-top:6px;color:var(--green-d)}
+.milestone p{font-size:12.5px;color:var(--ink2);margin-top:5px}
+
+/* 凭证 / 分享卡 */
+.cert{background:linear-gradient(160deg,#fffdf8,#f2ecdd);border:2px solid var(--green-d);border-radius:18px;
+  padding:22px 18px;margin-top:14px;text-align:center;position:relative}
+.cert .k{font-size:10.5px;letter-spacing:.3em;color:var(--green);font-weight:800}
+.cert h3{font-family:var(--serif);font-size:22px;margin-top:8px}
+.cert .sub{font-size:11.5px;color:var(--ink3);margin-top:2px}
+.cert .row{display:flex;justify-content:center;gap:22px;margin-top:12px}
+.cert .row div b{font-family:var(--serif);font-size:24px;color:var(--green-d);display:block}
+.cert .row div span{font-size:11px;color:var(--ink3)}
+.cert .say{font-family:var(--serif);font-size:15px;color:var(--ink2);margin-top:12px}
+.watermark{font-size:10px;color:var(--ink3);border-top:1px dashed var(--line2);margin-top:14px;padding-top:8px;line-height:1.5}
+.sharecard{background:linear-gradient(150deg,#1d7a5f,#2a9d7c);color:#fff;border-radius:18px;padding:20px 18px;margin-top:12px;text-align:center;box-shadow:var(--shadow)}
+.sharecard h4{font-family:var(--serif);font-size:19px;line-height:1.45}
+.mini-map{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin:12px auto 0;max-width:200px}
+.mini-map i{aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.22)}
+.mini-map i.hit{background:#ffe9c7}
+.cert .mini-map i{background:#e9e2d2}
+.cert .mini-map i.hit{background:var(--green-l)}
+.sharecard .wm{font-size:9.5px;opacity:.75;margin-top:12px;line-height:1.5;border-top:1px dashed rgba(255,255,255,.35);padding-top:8px}
+.cap-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.cap-list label{display:flex;gap:9px;align-items:flex-start;background:var(--card);border:1.5px solid var(--line);
+  border-radius:11px;padding:10px 12px;font-size:13px;line-height:1.5;cursor:pointer}
+.cap-list label.on{border-color:var(--green)}
+.cap-list input{margin-top:3px}
+
+/* ================= B端 布局 ================= */
+#view-b{max-width:760px;margin:0 auto;padding:14px 14px 100px}
+.b-card{background:var(--bpanel);border:1px solid var(--bline);border-radius:14px;padding:15px;margin-top:12px;box-shadow:var(--bshadow)}
+.b-card h3{font-size:15px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.b-card .desc{color:var(--bink2);font-size:13px;margin-top:5px;line-height:1.6}
+.b-kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--bink3);font-weight:700}
+#btabbar{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(16,20,25,.95);backdrop-filter:blur(10px);
+  border-top:1px solid var(--bline);display:flex;max-width:760px;margin:0 auto}
+#btabbar button{flex:1;padding:9px 2px 10px;font-size:10.5px;color:var(--bink3);display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600}
+#btabbar button .ic{font-size:19px}
+#btabbar button.on{color:var(--brand2)}
+.bbtn{background:var(--brand);color:#fff;border-radius:10px;padding:10px 15px;font-size:13.5px;font-weight:700;transition:filter .15s,transform .05s}
+.bbtn:active{transform:scale(.97)}
+.bbtn.sec{background:var(--bpanel2);color:var(--bink);border:1px solid var(--bline)}
+.bbtn.sm{padding:6px 11px;font-size:12px;border-radius:8px}
+.bbtn.danger{background:var(--bbad)}
+.bbtn:disabled{opacity:.45;cursor:not-allowed}
+.bpill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:700;vertical-align:middle}
+.bpill.mock{background:#374151;color:#9ca3af}
+.bpill.ok{background:#14532d;color:#86efac}
+.bpill.warn{background:#78350f;color:#fcd34d}
+.bpill.bad{background:#7f1d1d;color:#fca5a5}
+.bpill.info{background:#1e3a8a;color:#93c5fd}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:9px;margin-top:11px}
+.metric{background:var(--bpanel2);border:1px solid var(--bline);border-radius:11px;padding:10px 11px;position:relative;overflow:hidden}
+.metric b{font-size:21px;font-family:var(--mono)}
+.metric span{display:block;font-size:11px;color:var(--bink2);margin-top:2px;line-height:1.35}
+.metric .wm{position:absolute;right:-4px;top:4px;font-size:9px;color:#4b5a6b;transform:rotate(6deg)}
+.mock-wm{font-size:10.5px;color:var(--bink3);margin-top:8px}
+.stu-row{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--bline);font-size:13px}
+.stu-row:first-child{border-top:none}
+.stu-row .av{flex:0 0 34px;height:34px;border-radius:50%;background:var(--bpanel2);display:grid;place-items:center;font-size:16px;border:1px solid var(--bline)}
+.stu-row .nm{font-weight:700;min-width:74px}
+.stu-row .st{color:var(--bink2);font-size:12px;flex:1;line-height:1.4}
+.locked{color:var(--bink3);font-size:12px}
+.tour-step{display:flex;gap:12px;margin-top:14px;cursor:pointer}
+.tour-step .n{flex:0 0 30px;height:30px;border-radius:9px;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:800;font-family:var(--mono);font-size:13px}
+.tour-step .t{flex:1;border-bottom:1px dashed var(--bline);padding-bottom:13px}
+.tour-step .t h4{font-size:14px;line-height:1.45}
+.tour-step .t p{font-size:12px;color:var(--bink2);margin-top:4px;line-height:1.55}
+.tour-step .t .go{font-size:11.5px;color:var(--brand2);font-weight:700;margin-top:5px}
+.tour-loop{text-align:center;color:var(--bink3);font-size:12px;margin-top:12px}
+.redline-edu{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.redline-edu span{color:#fca5a5;font-size:12.5px;font-weight:700}
+.script-card{background:var(--bpanel2);border:1px dashed var(--bline);border-radius:11px;padding:13px;margin-top:10px;
+  font-size:13.5px;line-height:1.7;color:var(--bink)}
+.dial-row{margin-top:12px}
+.dial-row .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--bink2);font-weight:600}
+.dial-row input[type=range]{width:100%;accent-color:var(--brand)}
+.dial-row .lab b.over{color:var(--bbad)}
+.gray-card{background:var(--bpanel2);border:1px dashed var(--bline);border-radius:11px;padding:11px 13px;margin-top:9px;
+  color:var(--bink3);font-size:12.5px;display:flex;gap:8px;align-items:center}
+.gray-card .gtag{font-size:9.5px;background:#374151;color:#9ca3af;padding:2px 6px;border-radius:5px;font-weight:700;flex:0 0 auto}
+.attack-card{border:1px solid var(--bline);border-radius:13px;background:var(--bpanel);padding:14px;margin-top:11px}
+.attack-card h4{font-size:14px;display:flex;gap:8px;align-items:center}
+.attack-card .sc{font-size:12px;color:var(--bink2);margin-top:5px;line-height:1.55}
+.attack-card .why{font-size:11.5px;color:var(--bink3);margin-top:8px;border-top:1px dashed var(--bline);padding-top:7px;line-height:1.5}
+.attack-card .zone{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.attack-card input[type=text]{flex:1;min-width:150px;background:var(--bpanel2);border:1px solid var(--bline);
+  border-radius:9px;padding:9px 11px;color:var(--bink)}
+.blocked-b{border:1px solid var(--bbad);background:rgba(239,68,68,.09);color:#fca5a5;border-radius:10px;
+  padding:9px 12px;font-size:12.5px;line-height:1.55;margin-top:9px;animation:fadein .2s}
+.pass-b{border:1px solid var(--bgood);background:rgba(34,197,94,.09);color:#86efac;border-radius:10px;
+  padding:9px 12px;font-size:12.5px;line-height:1.55;margin-top:9px;animation:fadein .2s}
+.gauge{display:flex;align-items:center;gap:13px;margin-top:11px}
+.gauge .ring{flex:0 0 68px;height:68px;border-radius:50%;display:grid;place-items:center;
+  background:conic-gradient(var(--bgood) calc(var(--p)*1%),var(--bpanel2) 0);position:relative}
+.gauge .ring::after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--bpanel)}
+.gauge .ring b{position:relative;z-index:1;font-family:var(--mono);font-size:15px}
+.gauge .gt{font-size:12.5px;color:var(--bink2);line-height:1.55}
+table.evt{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:9px}
+table.evt th,table.evt td{border:1px solid var(--bline);padding:5px 7px;text-align:left;color:var(--bink2)}
+table.evt th{color:var(--bink);background:var(--bpanel2);font-size:11px}
+details.fold{margin-top:12px;border:1px solid var(--bline);border-radius:12px;background:var(--bpanel);overflow:hidden}
+details.fold summary{padding:12px 14px;font-size:13.5px;font-weight:700;cursor:pointer;list-style:none}
+details.fold summary::before{content:"▸ "}
+details.fold[open] summary::before{content:"▾ "}
+details.fold .fbody{padding:0 14px 13px}
+
+/* ================= 模态 / toast ================= */
+#modal-root{position:fixed;inset:0;z-index:80;display:none}
+#modal-root.show{display:block}
+#modal-root .dim{position:absolute;inset:0;background:rgba(20,16,10,.55);animation:fadein .15s}
+#modal-root .box{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:520px;
+  background:var(--card);color:var(--ink);border-radius:20px 20px 0 0;padding:20px 18px 26px;max-height:82vh;overflow:auto;animation:up .22s}
+body[data-role="b"] #modal-root .box{background:var(--bpanel);color:var(--bink);border:1px solid var(--bline)}
+@keyframes up{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:90;background:#26221c;color:#f0e9dc;
+  padding:9px 16px;border-radius:999px;font-size:12.5px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:86vw;text-align:center}
+#toast.show{opacity:1}
+#blockbar{position:fixed;top:0;left:0;right:0;z-index:99;background:#7f1d1d;color:#fff;font-size:12px;padding:8px 14px;display:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body data-role="c">
+
+<div id="blockbar"></div>
+
+<!-- 演示控制条 -->
+<div id="demobar">
+  <span class="tag">仅演示用</span>
+  <span class="segtog" id="roletog">
+    <button data-role="c" class="on">👤 顾客视角</button>
+    <button data-role="b">🧑‍💼 从业者视角</button>
+  </span>
+  <span id="daydial" title="演示日期拨盘"></span>
+  <button class="rst" id="resetbtn">重置演示数据</button>
+</div>
+
+<!-- 诚实 banner -->
+<div id="honest">本页为 <b>2.0 原型演示</b>（素瓷·晴序版）：数据为内置模拟，属 pilot 前证伪工具，不构成效果证据或收益承诺。</div>
+
+<main id="view-c"></main>
+<main id="view-b" class="hide"></main>
+
+<nav id="ctabbar" class="hide"></nav>
+<nav id="btabbar" class="hide"></nav>
+
+<div id="modal-root"><div class="dim" onclick="closeModal()"></div><div class="box" id="modal-box"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   生活方式自检 · 21天习惯营 · 1.0 演示（自包含单文件）
+   合规围栏为工程实现，不只是文案 —— 见 GUARD 部分
+============================================================ */
+'use strict';
+/* ==================== 全局常量文案（写死） ==================== */
+const ROLE_NAME='习惯陪伴员';
+const FOOT='本工具只做生活习惯记录与陪伴，不是健康评估、诊断或疗效承诺。身体不适请就医。';
+const WATERMARK='仅代表打卡行为记录，不代表健康改善、疾病风险下降或任何疗效';
+const DISCLAIM='以上是你对生活习惯的自评整理，受当日状态和填写影响，不代表健康状况、疾病风险、诊断或疗效。';
+const LIGHT_TIP='反映的是你此刻对生活习惯的自评，不是健康状况的判断。';
+const OPTIN_TEXT='我愿意营主联系我做服务提醒，不代表同意销售推荐。';
+const CARE_SCRIPT='这两天是不是忙？今天回来就算继续。';
+const COLD_SCRIPT='咱这营只夸坚持，不聊调理身体的事哈，身体不舒服还是得看医生～';
+
+/* 疗效词拦截（对用户输入生效） */
+const THERAPY_RE=/治好|降了|排毒|便秘好了|血压|血糖|调理|瘦了/;
+/* 命名禁词（启动时扫描静态 DOM；.redline-edu 内的“禁语教育”除外） */
+const NAMING_BLOCKLIST=['健康顾问','智能分诊','对症营','对症调理','最弱维度','代谢弱','毕业证','名额有限','铁证','硬证据'];
+
+/* ==================== 六维模型 ==================== */
+const DIMS=[
+ {key:'water', emoji:'💧', name:'饮水习惯',   def:'一天里喝水这件事被你放在心上的程度', color:'#3b9ad9',
+  pass:'水的部分聊完啦',
+  orange:'按你自己填的，喝水这件事最近被放在心上的时候比较少——也许你最想先从这里开始练。',
+  eduT:'体检小知识：尿常规里的“尿比重”是什么',
+  edu:'很多体检套餐里都有尿常规，其中有一项叫“尿比重”，反映的是尿液的浓缩程度。对一般人群来说，一天里喝水多少、出汗多少，都会让这项数字在一个范围内自然波动。这里只是科普这个指标是什么，不是说你需要去做这项检查，也不构成任何个人建议。'},
+ {key:'sleep', emoji:'🌙', name:'作息节律',   def:'睡与起的时间节奏是否规律', color:'#7c6bd9',
+  pass:'睡觉的事儿说完了',
+  orange:'按你自己填的，睡与起的节奏最近排得比较靠后——也许你最想先从这里开始练。',
+  eduT:'体检小知识：为什么量血压常建议“坐五分钟再量”',
+  edu:'体检量血压前，护士常让人先坐一会儿。这是因为这类指标一天之内本来就有自然的节律波动，刚爬完楼梯、刚说完话测出来的数字参考意义不一样。这里只是科普这类指标为什么要“静一静再测”，不是说你需要去做检查，也不构成任何个人建议。'},
+ {key:'food', emoji:'🍚', name:'饮食节律',   def:'三餐是否按点、好好吃', color:'#d98f3b',
+  pass:'吃饭聊完，继续～',
+  orange:'按你自己填的，三餐按点这件事最近让位比较多——也许你最想先从这里开始练。',
+  eduT:'体检小知识：抽血为什么常要求“空腹”',
+  edu:'体检抽血常要求空腹 8 小时，是因为不少血液指标在饭后会自然升高一阵，空腹测是为了让不同人的结果能放在同一把尺子上比。这里只是科普“空腹”这个要求是怎么回事，不是说你需要去做检查，也不构成任何个人建议。'},
+ {key:'move', emoji:'🚶', name:'活动与久坐', def:'每天让身体动起来的机会', color:'#4aa361',
+  pass:'动一动的部分好了',
+  orange:'按你自己填的，每天让身体动起来的机会排得比较少——也许你最想先从这里开始练。',
+  eduT:'体检小知识：“腰围”为什么也算一项测量',
+  edu:'有些体检表上除了身高体重，还有一项是腰围。它只是一个用软尺完成的简单测量，人群研究里常拿它和身高体重放在一起看整体的生活方式画像。这里只是科普这项测量是什么，不是说你需要去测，也不构成任何个人建议。'},
+ {key:'sun', emoji:'☀️', name:'阳光与户外', def:'白天见到太阳和户外的时间', color:'#e0b02e',
+  pass:'晒太阳的事儿问完啦',
+  orange:'按你自己填的，白天见到太阳的时间最近比较少——也许你最想先从这里开始练。',
+  eduT:'体检小知识：化验单上的“维生素 D”是什么',
+  edu:'有的体检套餐里能看到“25-羟维生素 D”这一项。维生素 D 的特别之处是皮肤晒到阳光时自己就能合成一部分，所以它常被拿来当作“户外时间”话题的科普素材。这里只是科普这个指标是什么，不是说你需要去查，也不构成任何个人建议。'},
+ {key:'relax', emoji:'🍃', name:'放松与自我照顾', def:'每天留给自己喘口气的空间', color:'#5fae9e',
+  pass:'最后一关，喘口气',
+  orange:'按你自己填的，留给自己喘口气的时间最近比较少——也许你最想先从这里开始练。',
+  eduT:'体检小知识：手表上的“HRV”是个什么概念',
+  edu:'不少智能手表会显示一个叫 HRV（心率变异性）的数字，它描述的是两次心跳间隔的细微变化，是运动科学里常见的一个观察角度。这里只是科普这个名词是什么，不是医疗判断，也不构成任何个人建议。'},
+];
+const DIM_IDX=Object.fromEntries(DIMS.map((d,i)=>[d.key,i]));
+
+/* ==================== 题库（18题 · 生活流水顺序混排） ==================== */
+const QUESTIONS=[
+ {dim:'water', q:'早上起床后一小时内，你会喝水吗？', opts:[['基本每天',3],['一半以上的日子',2],['偶尔想起来',1],['几乎不会',0]]},
+ {dim:'food',  q:'早餐这件事？', opts:[['几乎每天吃',3],['多数日子吃',2],['偶尔吃',1],['基本不吃',0]]},
+ {dim:'move',  q:'每天走路／活动的机会？', opts:[['常散步或运动',3],['通勤能走一些',2],['很少刻意走',1],['基本不走',0]]},
+ {dim:'move',  q:'坐下后多久会起身动一动？', opts:[['差不多每小时',3],['两小时左右',2],['半天一次',1],['坐下就到饭点',0]]},
+ {dim:'water', q:'白天忙起来时，你的喝水节奏是？', opts:[['手边有水、会主动喝',3],['有杯子但忙了会忘',2],['渴了才喝',1],['经常一下午想不起来',0]]},
+ {dim:'sun',   q:'白天晒到太阳的时间？', opts:[['每天半小时以上',3],['常有一会儿',2],['偶尔',1],['基本全天室内',0]]},
+ {dim:'sun',   q:'午休或白天，你会出门走走吗？', opts:[['几乎每天',3],['每周几次',2],['偶尔',1],['几乎不',0]]},
+ {dim:'food',  q:'三餐时间？', opts:[['基本固定',3],['多数固定',2],['经常推迟或跳过',1],['饿了才想起来',0]]},
+ {dim:'food',  q:'吃饭的方式？', opts:[['坐下来好好吃完',3],['多数时候能',2],['常边看手机边吃',1],['常站着几分钟解决',0]]},
+ {dim:'water', q:'你平时喝得最多的是？', opts:[['白水或淡茶',3],['白水和含糖饮料各一半',2],['以奶茶饮料为主',1],['水和饮料都很少',0]]},
+ {dim:'move',  q:'能走楼梯／能步行的场合，你会？', opts:[['能动就动',3],['看心情',2],['多半选省力的',1],['从不多动',0]]},
+ {dim:'relax', q:'每天有完全属于自己的放松时刻吗？', opts:[['每天都有',3],['多数日子有',2],['很少',1],['几乎没有',0]]},
+ {dim:'relax', q:'感觉紧绷时，你有让自己缓一缓的小方法吗？', opts:[['有固定的小方法',3],['有时会做点什么',2],['很少',1],['基本硬扛',0]]},
+ {dim:'sun',   q:'周末去户外的频率？', opts:[['几乎每周',3],['两周一次',2],['偶尔一次',1],['基本宅家',0]]},
+ {dim:'relax', q:'多久给自己安排一次“什么都不干”的喘气时间？', opts:[['每天',3],['每周几次',2],['偶尔',1],['想不起来上次是什么时候',0]]},
+ {dim:'sleep', q:'最近两周，你通常几点睡？', opts:[['23 点前',3],['23–24 点',2],['24–1 点',1],['1 点以后',0]]},
+ {dim:'sleep', q:'睡前最后半小时你多半在？', opts:[['基本放下手机了',3],['偶尔刷一会儿',2],['经常刷到犯困',1],['基本刷到撑不住',0]]},
+ {dim:'sleep', q:'工作日和休息日的起床时间差？', opts:[['1 小时内',3],['1–2 小时',2],['2–3 小时',1],['3 小时以上',0]]},
+];
+
+/* ==================== 习惯营内容 ==================== */
+const THEMES={
+ water:{emoji:'💧',name:'喝水营',dim:'water',act:'每天一杯水',full:true,
+   why:'饮水这块你自己标注的关注比较多，可以先练喝水营 —— 每天一杯水、一次点选，21 天。',
+   play:'每天一杯水，5 秒打卡，21 天拼一张地图 · 免费',
+   prep:'水杯已放好 ✓',day0:'现在先接一杯水，喝一口，点这一下'},
+ sleep:{emoji:'🌙',name:'早睡营',dim:'sleep',act:'今晚提前十分钟放下手机',full:false,
+   why:'作息这块你自己标注的关注比较多，可以先练早睡营 —— 每晚一个小动作、一次点选，21 天。',
+   play:'每晚早十分钟，5 秒打卡，21 天拼一张地图 · 免费',
+   prep:'充电器挪出卧室了 ✓',day0:'现在把今晚的睡前提醒设好，点这一下'},
+ sun:{emoji:'☀️',name:'晒太阳营',dim:'sun',act:'白天出门晒十分钟太阳',full:false,
+   why:'白天户外这块你自己标注的关注比较多，可以先练晒太阳营 —— 每天十分钟、一次点选，21 天。',
+   play:'每天晒十分钟，5 秒打卡，21 天拼一张地图 · 免费',
+   prep:'外套和鞋放到门口了 ✓',day0:'现在到窗边亮处待一分钟，点这一下'},
+};
+const QUOTES=[
+ '每天垫一张纸，21 天就是一本书的厚度。',
+ '你不是在喝水，你是在给「坚持」记账。',
+ '小事做成了，大事才敢信你。',
+ '今天这一下，是你对自己说话算话。',
+ '习惯不靠狠劲，靠顺手。',
+ '时间不说话，但它都记着。',
+ '你已经比昨天的自己多走了一格。',
+ '慢慢来，比较快。',
+];
+const CONTENT_CARDS={
+ 1:{t:'第 1 天 · 一道公式',s:'今天开营，只讲一句话：<b>健康 = 好习惯 × 时间</b>。这 21 天咱们不学大道理，就做一道证明题——喝水是“好习惯”，21 天是“时间”，你亲手把时间填进去，答案自己看。'},
+ 5:{t:'第 5 天 · 垫纸的故事',s:'有人问：一天一杯水有什么用？就像往桌上垫一张纸，看不出高。可你已经垫了 5 张了——回头看看你的地图，那一小叠，就是你亲手攒的。'},
+ 16:{t:'第 16 天 · 教是最好的学',s:'今天的任务有点特别：把“为什么要好好喝水”这件事，<b>讲给家里一个人听</b>。不用讲得多专业，讲明白一件小事，它就真正属于你了。'},
+ default:{t:'今日一杯水',s:'老规矩：把杯子放在看得见的地方，到点喝掉，回来点一下。今天的故事就一句——<b>把小事做熟，它就不费劲了。</b>'},
+};
+const ANCHORS=['睁眼下床','坐下工位','上完厕所','饭前坐下','早 8 点提醒'];
+const WEAKDAYS=['加班晚归的那天','周末睡懒觉那天','出差在路上那天','聚餐应酬那天','说不好，看运气'];
+const CAPTIONS=[
+ '我在参加 21 天喝水营，一起来打卡呀，互相监督更容易坚持～',
+ '每天就喝一杯水、点一下，我已经坚持 {N} 天了，你也来陪我一段？',
+ '拉你不是有什么好处，纯粹想有个人陪我打卡。',
+ '给爸妈也发了一个，一家人一起养个小习惯挺好的。',
+];
+
+/* ==================== B端 mock 数据 ==================== */
+const MOCK_STUDENTS=[
+ {name:'张姐', av:'🌷', auth:true,  days:3, streak:3, laggard:false, optin:true},
+ {name:'李哥', av:'🎋', auth:true,  days:3, streak:2, laggard:false, optin:false},
+ {name:'王叔', av:'🍵', auth:true,  days:1, streak:0, laggard:true,  optin:true},
+ {name:'刘婶', av:'🧣', auth:false, days:0, streak:0, laggard:false, optin:false},
+ {name:'陈妹', av:'🌻', auth:true,  days:2, streak:2, laggard:false, optin:false},
+ {name:'赵哥', av:'⛰️', auth:false, days:0, streak:0, laggard:false, optin:false},
+ {name:'孙姨', av:'🧺', auth:true,  days:1, streak:1, laggard:true,  optin:false},
+];
+const EVENT_DICT=[
+ ['selfcheck_start','开始自检'],['selfcheck_complete','完成自检'],['report_view','查看私密报告'],
+ ['theme_select','选择习惯主题'],['camp_join','加入训练营'],['anchor_set','设定习惯锚点'],
+ ['day0_checkin','Day0 预打卡'],['checkin','每日打卡（含标签）'],['feel_saved','保存私有感受（仅计次，内容永不采集）'],
+ ['camp_complete','完营'],['share_card_gen','生成公开分享卡（type）'],['invite_open','邀请链接被打开（仅匿名总量，不落关系边，不进看板）'],
+ ['auth_grant','开启行为记录授权'],['auth_revoke','撤回授权'],['outreach_log','触达留痕（原因/渠道/话术/是否被拒）'],
+ ['complaint_submit','投诉/举报提交'],
+];
+const PREREG_METRICS=['完营率','习惯主题匹配→入营转化率','D3 留存','D7 留存','自检完成率','Day0 预打卡率','断卡后回归率','行为授权开启率','撤回授权率','主动咨询率','私聊同意率','助教每日运营分钟数'];
+
+/* ==================== 状态 ==================== */
+const LS_KEY='lifestyle_check_demo_v1';
+const DEFAULT_STATE={
+  role:'c', demoDay:0, ctab:'today', btab:'tour', cstage:'welcome',
+  selfcheck:{answers:[],done:false,scores:null},
+  camp:{joined:false,theme:null,anchor:null,weakDay:null,pact:false,day0:false,joinDate:null,completed:false,checkins:{}},
+  priv:{feelTags:{},feelText:{},witness:''},      /* 私有：永不进入看板/CSV/分享卡渲染路径 */
+  auth:{behavior:false,remind:false,remindRejectedUntil:0,log:[]},
+  outreach:[], complaintsList:[], riskLock:false, riskLockBy:'', mockOptin:{},
+  guard:{}, events:[], inviteOpens:0,
+};
+/* 深合并：旧版本 localStorage 结构缺字段时逐层补默认值，不整块覆盖 */
+function deepMerge(def,sav){
+  if(Array.isArray(def)) return Array.isArray(sav)?sav:structuredClone(def);
+  if(def&&typeof def==='object'){
+    const o={};
+    for(const k of Object.keys(def)) o[k]=(sav&&typeof sav==='object'&&!Array.isArray(sav)&&k in sav)?deepMerge(def[k],sav[k]):structuredClone(def[k]);
+    if(sav&&typeof sav==='object'&&!Array.isArray(sav)) for(const k of Object.keys(sav)) if(!(k in o)) o[k]=sav[k];
+    return o;
+  }
+  return sav===undefined?structuredClone(def):sav;
+}
+let S=load();
+function load(){
+  try{const raw=localStorage.getItem(LS_KEY); if(raw) return deepMerge(DEFAULT_STATE,JSON.parse(raw));}catch(e){}
+  return structuredClone(DEFAULT_STATE);
+}
+function save(){ try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){} }
+
+/* ==================== 埋点（16 项事件字典） ==================== */
+/* 私有键净化：任何进入事件流水的对象，递归剔除私有命名的键（工程锁，而非约定） */
+const PRIV_KEY_RE=/priv|feel|witness|体感|感受/i;
+function scrub(v){
+  if(Array.isArray(v))return v.map(scrub);
+  if(v&&typeof v==='object'){const o={};for(const[k,x]of Object.entries(v)){if(PRIV_KEY_RE.test(k))continue;o[k]=scrub(x);}return o;}
+  return v;
+}
+function track(ev,data){
+  S.events.push({t:new Date().toISOString(),ev,data:data?scrub(data):null}); save();
+}
+/* CSV：字段表只有 time/event/data，写入前再过一次 scrub 投影 */
+function buildCSV(){
+  const rows=[['time','event','data']];
+  S.events.forEach(e=>rows.push([e.t,e.ev,e.data?JSON.stringify(scrub(e.data)).replace(/"/g,'""'):'']));
+  return '﻿'+rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+}
+function exportCSV(){
+  const url=URL.createObjectURL(new Blob([buildCSV()],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a'); a.href=url; a.download='pilot_events.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  toast('已导出事件流水 CSV（不含任何私有感受内容）');
+}
+
+/* ==================== 工具 ==================== */
+const $=s=>document.querySelector(s);
+function h(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content;}
+let toastTimer=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);}
+function openModal(html){$('#modal-box').innerHTML=html;$('#modal-root').classList.add('show');}
+function closeModal(){$('#modal-root').classList.remove('show');}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+/* ============================================================
+   GUARD · 合规围栏（工程实现）
+============================================================ */
+/* 围栏1：URL 参数剥离 —— 只认 campId / inviteToken，归因参数一律丢弃 */
+function stripUrlParams(){
+  try{
+    const sp=new URLSearchParams(location.search);
+    const stripped=[...sp.keys()].filter(k=>!['campId','inviteToken'].includes(k));
+    if(stripped.length){
+      const clean=new URLSearchParams();
+      ['campId','inviteToken'].forEach(k=>{if(sp.has(k))clean.set(k,sp.get(k));});
+      history.replaceState(null,'',location.pathname+(clean.toString()?'?'+clean.toString():''));
+      toast('已移除无关参数');
+    }
+    /* invite_open 的真实语义：带 inviteToken 打开页面（会话内去重，仅匿名总量） */
+    if(sp.has('inviteToken')&&!sessionStorage.getItem('invite_seen')){
+      sessionStorage.setItem('invite_seen','1');
+      S.inviteOpens++; track('invite_open');
+    }
+  }catch(e){}
+}
+/* 围栏2：邀请链接生成函数 —— 硬编码仅两参数，函数签名上就不存在归因入口 */
+function makeInviteLink(){ return 'https://demo.example/check?campId=demo01&inviteToken=t8f3k'; }
+/* 围栏3：公开分享卡渲染器 —— 白名单入参。分数/雷达/信号灯/体感字段在代码层不可达 */
+const SHARE_WHITELIST=['type','date','dayN','streak','mapTags','theme'];
+function renderShareCard(payload){
+  const extra=Object.keys(payload).filter(k=>!SHARE_WHITELIST.includes(k));
+  if(extra.length) return {ok:false,reason:'白名单模板拒收字段：'+extra.join('、')};
+  /* 键名 + 值类型双重校验：只放行行为字段的合法取值 */
+  const p={};
+  p.type=['selfcheck','companion','poster'].includes(payload.type)?payload.type:'selfcheck';
+  p.date=/^\d{4}-\d{2}-\d{2}$/.test(payload.date||'')?payload.date:todayStr();
+  p.dayN=Math.max(0,Math.min(21,Number(payload.dayN)||0));
+  p.streak=Math.max(0,Math.min(21,Number(payload.streak)||0));
+  p.theme=THEMES[payload.theme]?payload.theme:'water';
+  p.mapTags={};
+  const legalTags=TAGS.map(t=>t[0]).concat('🌱');
+  if(payload.mapTags&&typeof payload.mapTags==='object')
+    for(let i=1;i<=21;i++) if(legalTags.includes(payload.mapTags[i])) p.mapTags[i]=payload.mapTags[i];
+  const campName=`21 天${THEMES[p.theme].name}`;
+  let body='';
+  if(p.type==='selfcheck'){
+    body=`<h4>我完成了生活方式自检</h4><p style="opacity:.85;font-size:13px;margin-top:6px">${esc(p.date)}</p>`;
+  }else if(p.type==='companion'){
+    body=`<h4>我在第 ${p.dayN} 天，一起？</h4>${miniMap(p.mapTags)}`;
+  }else{
+    body=`<h4>小事做成了，大事才敢信你</h4><p style="opacity:.85;font-size:13px;margin-top:6px">我在 ${campName} · 第 ${p.dayN} 天</p>${miniMap(p.mapTags)}`;
+  }
+  /* 水印由渲染函数拼进模板：无水印即不出图 */
+  return {ok:true,html:`<div class="sharecard">${body}<div class="wm">${WATERMARK}</div></div>`};
+}
+function miniMap(tags){
+  tags=tags||{};
+  return `<div class="mini-map">${Array.from({length:21},(_,i)=>`<i class="${tags[i+1]?'hit':''}"></i>`).join('')}</div>`;
+}
+/* 围栏4：疗效词拦截（用户输入） */
+function therapyBlock(text){ return THERAPY_RE.test(text||''); }
+/* 围栏5：命名禁词 DOM 扫描（.redline-edu 的“禁语教育”区除外） */
+function scanNaming(){
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const hits=[];
+  while(walker.nextNode()){
+    const n=walker.currentNode;
+    if(n.parentElement&&n.parentElement.closest('.redline-edu,script,#blockbar'))continue;
+    NAMING_BLOCKLIST.forEach(w=>{if(n.textContent.includes(w))hits.push(w);});
+  }
+  const bar=$('#blockbar');
+  if(hits.length){
+    console.error('[围栏] 命名禁词命中：',hits);
+    bar.style.display='block';
+    bar.textContent='⚠️ 围栏警报：界面文案命中命名禁词 '+[...new Set(hits)].join('、')+'（工程红线，须修复）';
+  }else bar.style.display='none';
+  return hits.length;
+}
+/* 每次渲染后都复扫当前 DOM（防抖），而不是只在启动时扫一屏 */
+let scanTimer=null;
+function scheduleScan(){ clearTimeout(scanTimer); scanTimer=setTimeout(scanNaming,250); }
+
+/* ============================================================
+   C 端 · 渲染
+============================================================ */
+const VC=$('#view-c'), VB=$('#view-b');
+function footNote(){ return `<p class="foot-note">${FOOT}</p>`; }
+
+function renderC(){
+  $('#ctabbar').classList.toggle('hide',!(S.cstage==='camp'));
+  const fn={welcome:renderWelcome,quiz:renderQuiz,report:renderReport,match:renderMatch,join:renderJoin,camp:renderCamp}[S.cstage]||renderWelcome;
+  fn();
+}
+
+/* ---------- S1 欢迎 ---------- */
+function renderWelcome(){
+  const resume=S.selfcheck.answers.length>0&&!S.selfcheck.done;
+  VC.innerHTML=`
+    <div class="cred">
+      <b>${ROLE_NAME} 老王 邀请你做一次生活方式自检</b>
+      <p>结果只有你自己能看到 · 可随时退出</p>
+    </div>
+    <div class="crackle" style="padding:6px 0 2px">
+      <h1 class="hero-title" style="margin-top:14px">用 5 分钟，看清自己的<em>生活方式</em></h1>
+      <p class="hero-sub">18 道小题，看看自己最近把日子过成了什么节奏。</p>
+      <div class="kilnmark"><span>检</span></div>
+    </div>
+    <div class="trust-row">
+      <div class="trust-item"><span class="ic">🔒</span>结果只有你自己能看到</div>
+      <div class="trust-item"><span class="ic">⏱️</span>5 分钟</div>
+      <div class="trust-item"><span class="ic">🙅</span>不评判、不诊断、不卖东西</div>
+    </div>
+    <p class="chip-sign">18 题 · 不推送任何商品 · 不诊断</p>
+    ${resume?`
+    <div class="c-card">
+      <p style="font-size:14px">上次做到第 ${S.selfcheck.answers.length+1} 题，接着来？</p>
+      <button class="cbtn" style="margin-top:12px" onclick="startQuiz()">继续</button>
+      <button class="cbtn ghost" onclick="restartQuiz()">重新开始</button>
+    </div>`:`
+    <button class="cbtn" style="margin-top:24px" onclick="startQuiz()">开始自检</button>`}
+    ${S.selfcheck.done?`<button class="cbtn sec" style="margin-top:10px" onclick="S.cstage='report';save();render()">回看我的私密报告</button>`:''}
+    ${footNote()}`;
+}
+function startQuiz(){
+  if(S.selfcheck.done){ restartQuiz(); return; }   /* 已完成再点 = 重新测，防止重复触发完成事件 */
+  if(!S.selfcheck.answers.length)track('selfcheck_start');
+  S.cstage='quiz';save();render();
+}
+function restartQuiz(){ S.selfcheck={answers:[],done:false,scores:null}; reportRevealed=false; track('selfcheck_start'); S.cstage='quiz';save();render(); }
+
+/* ---------- S2 问卷 ---------- */
+function dimProgress(){
+  const per={}; DIMS.forEach(d=>per[d.key]=0);
+  S.selfcheck.answers.forEach(a=>per[a.dim]++);
+  return per;
+}
+function renderQuiz(){
+  const idx=S.selfcheck.answers.length;
+  if(idx>=QUESTIONS.length){finishQuiz();return;}
+  const q=QUESTIONS[idx], per=dimProgress();
+  VC.innerHTML=`
+    <div class="rainbow">${DIMS.map(d=>`<div class="seg ${per[d.key]===3?'done':''}"><i style="background:${d.color};width:${per[d.key]/3*100}%"></i></div>`).join('')}</div>
+    <div class="rainbow-lab">${DIMS.map(d=>`<span>${d.emoji}</span>`).join('')}</div>
+    <div class="quiz-slide" id="quizslide">
+      <p class="q-num num">第 ${idx+1} / 18 题</p>
+      <h2 class="q-text">${esc(q.q)}</h2>
+      <div class="q-opts">
+        ${q.opts.map((o,i)=>`<button class="q-opt" onclick="answer(${i})">${esc(o[0])}</button>`).join('')}
+      </div>
+    </div>
+    ${footNote()}`;
+}
+function answer(i){
+  const idx=S.selfcheck.answers.length, q=QUESTIONS[idx];
+  S.selfcheck.answers.push({dim:q.dim,score:q.opts[i][1]}); save();
+  const per=dimProgress(), justDone=per[q.dim]===3;
+  if(justDone&&idx<QUESTIONS.length-1){
+    const d=DIMS[DIM_IDX[q.dim]];
+    const ov=h(`<div class="dim-pass"><div style="text-align:center"><div class="big">${d.emoji}</div><p>${d.pass}</p></div></div>`);
+    document.body.appendChild(ov.firstElementChild);
+    setTimeout(()=>{document.querySelector('.dim-pass')?.remove();render();},950);
+  }else render();
+}
+function finishQuiz(){
+  if(S.selfcheck.done&&S.selfcheck.scores){ S.cstage='report'; save(); render(); return; }  /* 幂等守卫 */
+  const sc={}; DIMS.forEach(d=>sc[d.key]=0);
+  S.selfcheck.answers.forEach(a=>sc[a.dim]+=a.score);
+  S.selfcheck.scores=sc; S.selfcheck.done=true; S.cstage='report'; save();
+  track('selfcheck_complete'); render();
+}
+
+/* ---------- S3 私密报告 ---------- */
+let reportRevealed=false;
+/* 素瓷釉点：颜色绝不单独承担含义，点旁必带状态词 */
+function lightOf(v){ return v>=7?['g','稳']:(v>=4?['y','留意']:['o','先照顾']); }
+function lightText(d,v){
+  if(v>=7)return '这个习惯挺稳，保持就好';
+  if(v>=4)return '有点松，也许值得留意';
+  return d.orange;
+}
+function renderReport(){
+  const sc=S.selfcheck.scores;
+  if(!sc){S.cstage='welcome';render();return;}
+  if(!reportRevealed){
+    VC.innerHTML=`<div style="text-align:center;padding:120px 0"><div style="font-size:44px">🌿</div>
+      <p style="margin-top:14px;font-weight:700;color:var(--ink2)">正在为你整理…</p></div>${footNote()}`;
+    setTimeout(()=>{reportRevealed=true;render();},prefersReduced()?0:1500);
+    return;
+  }
+  if(!renderReport._seen){ renderReport._seen=true; track('report_view'); }  /* 会话内去重 */
+  VC.innerHTML=`
+    <div class="lock-line sticky-priv" id="privline" style="margin-top:10px"><span>🔒</span><span>这份报告只有你自己能看到，不用发群、不用告诉任何人。</span></div>
+    <div class="c-card">
+      <p class="c-kicker">私 人 画 像 · ${todayStr()}</p>
+      <div class="radar-wrap" id="radarbox"></div>
+    </div>
+    <div class="lights">
+      ${DIMS.map(d=>{const v=sc[d.key],[lc,lw]=lightOf(v);return `
+      <div class="light-row"><span class="glaze-dot ${lc}">${lw}</span>
+        <div class="t" style="flex:1"><b>${d.emoji} ${d.name}</b> <span class="num" style="font-size:12px;color:var(--ink3)">${v} / 9</span>
+          <p>${esc(lightText(d,v))}</p>
+          <p class="tip">${LIGHT_TIP}</p>
+        </div></div>`;}).join('')}
+    </div>
+    <p class="c-kicker" style="margin-top:20px">顺带看点小知识（对事不对人）</p>
+    ${DIMS.map(d=>`<details class="edu-card"><summary>${d.emoji} ${esc(d.eduT)}</summary><div class="body">${esc(d.edu)}</div></details>`).join('')}
+    <div class="disclaim">${DISCLAIM}</div>
+    <button class="cbtn" style="margin-top:18px" onclick="S.cstage='match';save();render()">看看适合我的习惯主题 →</button>
+    ${footNote()}`;
+  drawRadar($('#radarbox'),sc);
+  /* 常驻隐私条：贴在演示控制条正下方，滚到哪都在 */
+  const pl=$('#privline'); if(pl) pl.style.top=($('#demobar').offsetHeight)+'px';
+}
+function prefersReduced(){ return matchMedia('(prefers-reduced-motion: reduce)').matches; }
+function drawRadar(box,sc){
+  const size=280,cx=size/2,cy=size/2,R=100;
+  const pt=(i,f)=>{const a=-Math.PI/2+i*Math.PI/3;return [cx+Math.cos(a)*R*f,cy+Math.sin(a)*R*f];};
+  const ring=f=>Array.from({length:6},(_,i)=>pt(i,f).map(n=>n.toFixed(1)).join(',')).join(' ');
+  const target=DIMS.map((d,i)=>sc[d.key]/9);
+  const labels=DIMS.map((d,i)=>{const [x,y]=pt(i,1.24);return `<text x="${x}" y="${y+4}" text-anchor="middle" font-size="15">${d.emoji}</text>`;}).join('');
+  box.innerHTML=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="六维生活方式雷达图">
+    ${[1,.66,.33].map(f=>`<polygon points="${ring(f)}" fill="none" stroke="var(--line2)" stroke-width="1"/>`).join('')}
+    ${Array.from({length:6},(_,i)=>{const[x,y]=pt(i,1);return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line2)" stroke-width="1"/>`;}).join('')}
+    <polygon id="radarpoly" points="${ring(0.02)}" fill="rgba(29,122,95,.28)" stroke="var(--green-d)" stroke-width="2" stroke-linejoin="round"/>
+    ${labels}</svg>`;
+  const poly=box.querySelector('#radarpoly');
+  const setP=p=>{ /* 逐维生长：第 i 维在 p∈[i/6,(i+1)/6+缓冲] 内长出 */
+    poly.setAttribute('points',target.map((tv,i)=>{
+      const local=Math.max(0,Math.min(1,(p*7-i)/1.6));
+      const ease=1-Math.pow(1-local,3);
+      return pt(i,Math.max(.02,tv*ease)).map(n=>n.toFixed(1)).join(',');
+    }).join(' '));
+  };
+  if(prefersReduced()){setP(1);return;}
+  const t0=performance.now(),dur=1100;
+  (function frame(t){const p=Math.min(1,(t-t0)/dur);setP(p);if(p<1)requestAnimationFrame(frame);})(t0);
+}
+
+/* ---------- S4 习惯主题匹配 ---------- */
+function renderMatch(){
+  const sc=S.selfcheck.scores||{};
+  const keys=['water','sleep','sun'].sort((a,b)=>(sc[a]??9)-(sc[b]??9));
+  const allGreen=DIMS.every(d=>(sc[d.key]??0)>=7);   /* 全绿判定必须覆盖全部六维 */
+  VC.innerHTML=`
+    <h2 style="font-family:var(--serif);font-size:23px;margin-top:14px">${allGreen?'习惯都挺稳！挑一个当第 1 关，体验『好习惯 × 时间』这道公式。':'按你自己填的关注方向，这几关都适合先练'}</h2>
+    ${keys.map(k=>{const t=THEMES[k];const dimGreen=(sc[t.dim]??0)>=7;return `
+    <div class="theme-card" onclick="pickTheme('${k}')">
+      <span class="ic">${t.emoji}</span>
+      <div style="flex:1">
+        <h4>${t.name}${t.full?'':'<span class="demo-tag">演示样例</span>'}</h4>
+        <p class="why">${(allGreen||dimGreen)?esc(t.play):esc(t.why)}</p>
+        <p class="play">${esc(t.play)}</p>
+      </div></div>`;}).join('')}
+    <p class="small-note" style="text-align:center;margin-top:14px">这是按你的自评关注方向做的排序，不是身体判断。选哪个，你说了算。</p>
+    <button class="cbtn ghost" style="margin-top:10px" onclick="openShare('selfcheck')">生成「我完成了自检」分享卡（可跳过）</button>
+    ${footNote()}`;
+}
+function pickTheme(k){
+  track('theme_select',{theme:k});
+  S.camp.theme=k; S.cstage='join'; save(); render();   /* joined 只在完成入营三步后成立 */
+}
+
+/* ---------- S5 入营三步（Day0） ---------- */
+function renderJoin(){
+  const t=THEMES[S.camp.theme||'water'];
+  const c=S.camp;
+  VC.innerHTML=`
+    <div class="lock-line" style="margin-top:10px"><span>${t.emoji}</span><span>已为你加入 老王 ${ROLE_NAME}的 21 天${t.name}（演示营）</span></div>
+
+    <div class="c-card">
+      <p class="c-kicker">第 1 步 · 把习惯挂在日常上</p>
+      <h3 style="font-size:17px">我在 ___ 之后，${t.act==='每天一杯水'?'先喝一杯水':t.act}</h3>
+      <div class="anchor-grid">
+        ${ANCHORS.map(a=>`<button class="${c.anchor===a?'on':''}" onclick="setAnchor('${a}')">${a}</button>`).join('')}
+      </div>
+      <button class="cbtn sec" style="margin-top:14px" onclick="toast('好，就位是第一步 ✓')">${esc(t.prep)}</button>
+    </div>
+
+    <div class="c-card" style="${c.anchor?'':'opacity:.45;pointer-events:none'}">
+      <p class="c-kicker">第 2 步 · 我的约定</p>
+      <div style="margin-bottom:10px">
+        <p class="small-note" style="margin:0 0 6px">最可能让我断的一天是：</p>
+        <div class="anchor-grid" style="margin-top:0">
+          ${WEAKDAYS.map(w=>`<button class="${c.weakDay===w?'on':''}" onclick="setWeak('${w}')">${w}</button>`).join('')}
+        </div>
+      </div>
+      <div class="pact">如果我<u>${esc(c.anchor||'……')}</u>，我就${t.act==='每天一杯水'?'喝一杯水':t.act}；最可能让我断的一天是<u>${esc(c.weakDay||'……')}</u>，那天我就补一次也算。<br>21 天以后，我想亲眼看看：<b>「好习惯 × 时间」</b>这道公式，在我身上是不是真的。</div>
+      <button class="cbtn clay" style="margin-top:12px" ${c.weakDay?'':'disabled'} onclick="signPact()">${c.pact?'已击掌 🤝':'点一下，击个掌 👋'}</button>
+    </div>
+
+    <div class="c-card" style="${c.pact?'':'opacity:.45;pointer-events:none'}">
+      <p class="c-kicker">第 3 步 · 现在就完成第一次</p>
+      <p style="font-size:14px;color:var(--ink2)">别等明天——${esc(t.day0)}。</p>
+      <button class="cbtn" style="margin-top:12px" ${c.day0?'disabled':''} onclick="day0()">${c.day0?'开营预打卡完成 ✓（明天点亮第 1 格）':'做完了，这次就算数'}</button>
+    </div>
+
+    <div class="c-card">
+      <p class="c-kicker">授权（和入营无关，默认全关）</p>
+      ${authSwitchesHTML()}
+      <p class="small-note">加入训练营 ≠ 授权健康数据。不勾也能正常玩。</p>
+    </div>
+
+    <button class="cbtn" style="margin-top:16px" ${c.day0?'':'disabled'} onclick="enterCamp()">进入我的营 →</button>
+    ${footNote()}`;
+}
+function setAnchor(a){S.camp.anchor=a;save();track('anchor_set',{anchor:a});render();}
+function setWeak(w){S.camp.weakDay=w;save();render();}
+function signPact(){S.camp.pact=true;save();render();}
+function day0(){S.camp.day0=true;S.camp.checkins[0]={tag:'🌱',sim:false};save();track('day0_checkin');render();}
+function enterCamp(){
+  S.camp.joined=true; S.camp.joinDate=S.camp.joinDate||todayStr();
+  S.cstage='camp'; S.ctab='today'; save();
+  track('camp_join',{theme:S.camp.theme}); render();
+}
+function authSwitchesHTML(){
+  return `
+  <div class="switch-row">
+    <button class="sw ${S.auth.behavior?'on':''}" onclick="toggleBehaviorAuth()" aria-label="行为记录授权开关"></button>
+    <div class="lab"><b>让营主看到我的打卡行为记录</b><br>仅打卡日期与天数，<b>不含</b>自检分数、雷达、信号灯、感受记录 · 本营 21 天内有效 · 可随时撤回 · 操作会留记录</div>
+  </div>
+  <div class="switch-row">
+    <button class="sw" disabled aria-label="感受记录永不可授权"></button>
+    <div class="lab"><b>感受记录 🔒 永不可授权</b><br>只属于你自己，产品里没有把它交出去的开关。</div>
+  </div>`;
+}
+function toggleBehaviorAuth(){
+  S.auth.behavior=!S.auth.behavior;
+  const act=S.auth.behavior?'auth_grant':'auth_revoke';
+  S.auth.log.push({t:new Date().toISOString(),act,scope:'打卡行为记录'});
+  save();track(act,{scope:'behavior'});
+  toast(S.auth.behavior?'已开启：营主只能看到你的打卡行为':'已撤回授权：营主端即刻不可见');
+  render();
+}
+
+/* ---------- 演示日期推进：往期自动补模拟打卡 ---------- */
+const TAGS=[['☀️','晨起'],['🍜','饭前'],['😮‍💨','忙里偷闲'],['🌙','睡前']];
+function simulateTo(n){
+  if(!S.camp.joined)return;
+  for(let d=1;d<n;d++){
+    if(!S.camp.checkins[d]) S.camp.checkins[d]={tag:TAGS[(d*3)%4][0],sim:true};
+  }
+  save();
+}
+function checkedDays(){ return Object.keys(S.camp.checkins).filter(k=>+k>0).length; }
+function streakNow(){
+  let s=0;
+  for(let d=S.demoDay;d>=1;d--){ if(S.camp.checkins[d])s++; else if(d<S.demoDay) break; else break; }
+  if(!S.camp.checkins[S.demoDay]){ s=0; for(let d=S.demoDay-1;d>=1;d--){ if(S.camp.checkins[d])s++; else break; } }
+  return s;
+}
+
+/* ---------- S6 营内（今日 / 地图 / 我的） ---------- */
+function renderCamp(){
+  /* 状态机守卫：没走完入营三步就到不了营内 */
+  if(!S.camp.joined||!S.camp.day0){
+    S.cstage=S.camp.theme?'join':(S.selfcheck.done?'match':'welcome');
+    save(); render(); return;
+  }
+  const bar=$('#ctabbar');
+  bar.innerHTML=[['today','📍','今日'],['map','🗺️','地图'],['me','🌿','我的']]
+    .map(([k,ic,lab])=>`<button class="${S.ctab===k?'on':''}" onclick="S.ctab='${k}';save();render()"><span class="ic">${ic}</span>${lab}</button>`).join('');
+  ({today:renderToday,map:renderMap,me:renderMe})[S.ctab]();
+}
+function contentCard(){
+  const d=S.demoDay,t=THEMES[S.camp.theme||'water'];
+  const c=CONTENT_CARDS[d]||CONTENT_CARDS.default;
+  const skin=t.full?'':`<span class="demo-tag">演示样例 · 内容换皮</span>`;
+  return `<div class="c-card"><p class="c-kicker">今日内容 · 早 8:00 ${skin}</p>
+    <h3 style="font-size:16.5px">${esc(c.t)}</h3><p class="story-card">${c.s}</p>
+    <p class="small-note" style="margin-top:10px">今天的动作：<b>${esc(t.act)}</b>，然后回来点一下。</p></div>`;
+}
+function renderToday(){
+  const d=S.demoDay, c=S.camp, done=!!c.checkins[d], days=checkedDays(), st=streakNow();
+  const missedYesterday=d>=2&&!c.checkins[d-1]&&days>0&&!done;
+  VC.innerHTML=`
+    <div class="streak-hero">
+      <div class="n num" id="streakN">${st}</div>
+      <p class="lab">已连续 ${st} 天 · 共打卡 ${days} 天</p>
+      <div class="paper-stack">${Array.from({length:Math.min(days,21)},(_,i)=>`<i style="height:${3+i*1.4}px"></i>`).join('')||`<span class="small-note">${c.day0?'开营预打卡已完成，明天点亮第 1 格':'你的“垫纸”会从这里长起来'}</span>`}</div>
+    </div>
+    ${d===0?`<div class="c-card"><p class="c-kicker">开营日</p><p style="font-size:14px;color:var(--ink2)">明天开始每天早 8 点有一条内容。你已经点亮了第一格——用演示拨盘把日期拨到 Day1 试试。</p></div>`:''}
+    ${missedYesterday?`<div class="c-card" style="border-color:var(--clay)"><p style="font-size:14px">昨天断了很正常，前面攒的一天没丢，今天接着就行。</p></div>`:''}
+    ${d===2?`<div class="c-card"><p style="font-size:14px"><b>熬过第 3 天就稳一大半。</b>今天忘了？现在补一杯也算。</p></div>`:''}
+    ${d>=1?contentCard():''}
+    ${d>=1?`
+    <div class="c-card">
+      <p class="c-kicker">今天这杯，是哪种？</p>
+      <div class="checkin-grid">
+        ${TAGS.map(([ic,lab])=>`<button ${done?'disabled':''} onclick="checkin('${ic}')"><span class="ic">${ic}</span>${lab}</button>`).join('')}
+      </div>
+      ${done?`<p class="small-note" style="text-align:center;margin-top:10px">今天已打卡 ${c.checkins[d].tag} · 明日内容已解锁</p>`:''}
+      <div id="quotezone"></div>
+    </div>`:''}
+    ${milestoneHTML()}
+    ${d>=1?`
+    <div class="broadcast"><div class="k">晚 8:00 · 群里的今天（演示）</div>
+      今天看到 @张姐 六点就打卡了，@李哥 出差高铁上都没忘——这样的人，今天群里有 47 个。</div>`:''}
+    ${d>=1?feelBlockHTML():''}
+    ${footNote()}`;
+}
+function themeOf(k){ return THEMES[k||'water']; }
+function checkin(tag){
+  const d=S.demoDay;
+  if(S.camp.checkins[d])return;
+  S.camp.checkins[d]={tag,sim:false}; save();
+  track('checkin',{day:d,tag});
+  render();
+  const n=$('#streakN'); if(n){n.classList.add('bump');}
+  const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  const zone=$('#quotezone');
+  if(zone) zone.innerHTML=`<div class="quote-pop">「${q}」<small>—— 明日内容已解锁</small></div>`;
+  if(d===1) setTimeout(()=>openModal(`
+    <h3 style="font-family:var(--serif);font-size:20px">🎉 第一天，成了</h3>
+    <p style="margin-top:10px;font-size:14px;color:inherit;opacity:.85">给你留了一条欢迎语音：</p>
+    <div class="script-card" style="background:var(--paper2);border:1px dashed var(--line2);color:var(--ink)">🔊 「21 天很短，就做一件小事。我陪你。」<br><span style="font-size:11px;opacity:.7">（演示：音频占位，正式版为营主真人语音）</span></div>
+    <button class="cbtn" style="margin-top:14px" onclick="closeModal()">收下了</button>`),650);
+  /* 完营判定：D1–D21 全部有记录才成立，且只触发一次 */
+  if(checkedDaysUpTo21()>=21&&!S.camp.completed){ S.camp.completed=true; save(); track('camp_complete'); }
+}
+function milestoneHTML(){
+  const days=checkedDays(),d=S.demoDay;
+  const ms=[[3,'🌱','三天，你已赢过一半人','很多人第 3 天就散了，你还在。'],[7,'🌿','一周达成','第一周是最难的一段，你走完了。'],[21,'🏆','21 天完营','你亲手把「时间」填进了那道公式。']];
+  const hit=ms.find(([n])=>d===n&&days>=n);
+  if(!hit)return '';
+  const [n,ic,tt,pp]=hit;
+  return `<div class="milestone"><div class="ic">${ic}</div><h4>${tt}</h4><p>${pp}</p>
+    ${n===21?`<button class="cbtn" style="margin-top:12px" onclick="showCert()">领取《21 天打卡完成凭证》</button>`:''}
+    <button class="cbtn ${n===21?'sec':''}" style="margin-top:10px" onclick="openShare('companion')">生成同行卡，给在乎的人留个位（可跳过）</button>
+  </div>`;
+}
+function feelBlockHTML(){
+  const d=S.demoDay, tags=S.priv.feelTags[d]||[];
+  return `<div class="c-card">
+    <p class="c-kicker">我的个人感受记录（可跳过）</p>
+    <div class="lock-line"><span>🔒</span><span>仅你自己可见。这结论只有你自己知道，不用发群、不用告诉营主。产品里没有把它交出去的开关。</span></div>
+    <div class="feel-tags">
+      ${['更清醒','没那么累','上厕所更规律','说不清'].map(x=>`<button class="${tags.includes(x)?'on':''}" onclick="feelTag('${x}')">${x}</button>`).join('')}
+    </div>
+    <textarea class="feel-input" id="feeltext" placeholder="想写点什么就写，不写也完全可以">${esc(S.priv.feelText[d]||'')}</textarea>
+    <div id="feelblocked"></div>
+    <button class="cbtn ghost" onclick="saveFeel()">存给自己</button>
+  </div>`;
+}
+function feelTag(x){
+  const d=S.demoDay; const arr=S.priv.feelTags[d]||(S.priv.feelTags[d]=[]);
+  const i=arr.indexOf(x); i>=0?arr.splice(i,1):arr.push(x); save();render();
+}
+function saveFeel(){
+  const d=S.demoDay, v=$('#feeltext').value;
+  if(therapyBlock(v)){ $('#feelblocked').innerHTML=`<div class="result-blocked">${COLD_SCRIPT}<br><span style="font-size:11px;opacity:.8">咱这营只记录坚持，不做疗效记录——这类词存不进去。</span></div>`; return; }
+  S.priv.feelText[d]=v; save(); track('feel_saved'); toast('已存好，只有你看得见');
+}
+
+/* ---------- 地图 tab ---------- */
+function renderMap(){
+  const c=S.camp,d=S.demoDay,days=checkedDays();
+  VC.innerHTML=`
+    <h2 style="font-family:var(--serif);font-size:22px;margin-top:12px">我的 21 天${themeOf(c.theme).name.replace('营','')}地图</h2>
+    <p class="small-note">每一格都是你亲手点亮的。${Object.values(c.checkins).some(x=>x.sim)?'（演示：虚线格为拨盘自动补的模拟数据）':''}</p>
+    <div class="map21">
+      ${Array.from({length:21},(_,i)=>{const day=i+1,ck=c.checkins[day];
+        return `<div class="cell ${ck?'hit':''} ${ck&&ck.sim?'sim':''} ${day===d?'today':''}"><span class="d num">${day}</span>${ck?ck.tag:''}</div>`;}).join('')}
+    </div>
+    <div class="badge-row">
+      ${[[3,'叁','Day3 赢过一半人'],[7,'柒','一周达成'],[21,'廿一','完营']].map(([n,ch,lab])=>`
+      <div class="badge ${days>=n?'lit':''}"><div class="kchar">${ch}</div><p>${lab}</p></div>`).join('')}
+    </div>
+    ${days>=3?`<button class="cbtn sec" style="margin-top:16px" onclick="openShare('poster')">生成给家人的成长海报（可跳过）</button>`:''}
+    ${d>=21&&days>=21?`<button class="cbtn" style="margin-top:10px" onclick="showCert()">查看《21 天打卡完成凭证》</button>`:''}
+    ${footNote()}`;
+}
+
+/* ---------- 我的 tab ---------- */
+function renderMe(){
+  const c=S.camp,d=S.demoDay,days=checkedDays();
+  VC.innerHTML=`
+    <h2 style="font-family:var(--serif);font-size:22px;margin-top:12px">我的</h2>
+
+    <div class="c-card">
+      <p class="c-kicker">数据授权 · 随时可撤回</p>
+      ${authSwitchesHTML()}
+      ${S.auth.log.length?`<details class="edu-card" style="margin-top:10px"><summary>操作记录（${S.auth.log.length}）</summary><div class="body">${S.auth.log.map(l=>`<div class="num" style="font-size:11.5px">${l.t.slice(0,19).replace('T',' ')} · ${l.act==='auth_grant'?'开启':'撤回'}「${l.scope}」</div>`).join('')}</div></details>`:''}
+    </div>
+
+    <div class="c-card">
+      <p class="c-kicker">结伴同行</p>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="font-size:30px">🌻</div>
+        <div style="flex:1"><b style="font-size:14px">搭子 · 陈妹</b>
+          <p class="small-note" style="margin-top:2px">她打卡 2 天 · 你打卡 ${days} 天（互见的只有天数）</p></div>
+      </div>
+      <button class="cbtn sec" style="margin-top:12px" onclick="openShare('companion')">给在乎的人留同行位</button>
+    </div>
+
+    <div class="c-card">
+      <p class="c-kicker">两次作答对照</p>
+      <p style="font-size:13.5px;color:var(--ink2)">上线前设计中 · 敬请期待</p>
+      <p class="small-note">对照仅供自我记录，受当日状态和填写影响，不代表疾病风险下降、诊断或疗效。</p>
+    </div>
+
+    ${d>=21&&days>=21?`
+    <div class="c-card">
+      <p class="c-kicker">结营</p>
+      <button class="cbtn" onclick="showCert()">《21 天打卡完成凭证》</button>
+      <button class="cbtn sec" style="margin-top:10px" onclick="showReview()">我的 21 天（私有回顾）</button>
+    </div>`:''}
+
+    <div class="c-card">
+      <p class="c-kicker">帮助与监督</p>
+      <button class="cbtn ghost" style="text-align:left;padding-left:0" onclick="complain()">🚨 投诉 / 举报（营主或内容有问题，直接告诉平台）</button>
+      <button class="cbtn ghost" style="text-align:left;padding-left:0" onclick="S.role='b';S.btab='guard';save();render();toast('已切到围栏演示（从业者视角）')">🛡️ 看看这个产品的合规围栏（演示）</button>
+    </div>
+    ${footNote()}`;
+}
+function complain(){
+  openModal(`<h3 style="font-size:18px">投诉 / 举报</h3>
+    <p style="font-size:13px;opacity:.8;margin-top:8px">告诉平台发生了什么（演示表单，正式版直达平台审计后台，不经过营主）：</p>
+    <textarea class="feel-input" id="cmptext" placeholder="例如：营里有人承诺疗效 / 被推销了……"></textarea>
+    <button class="cbtn" style="margin-top:12px" onclick="submitComplain()">提交</button>`);
+}
+function submitComplain(){
+  const v=($('#cmptext').value||'').trim();
+  if(!v){ toast('写一句发生了什么再提交'); return; }
+  S.complaintsList.push({t:new Date().toISOString(),text:v}); save();
+  track('complaint_submit');   /* 事件只记发生，内容留在本机留痕（正式版直达平台审计后台） */
+  closeModal(); toast('已提交并留痕（共 '+S.complaintsList.length+' 条）');
+}
+
+/* ---------- S7 结营凭证 / 私有回顾 ---------- */
+function showCert(){
+  const c=S.camp,days=checkedDays();
+  let longest=0,cur=0; for(let i=1;i<=21;i++){cur=c.checkins[i]?cur+1:0;longest=Math.max(longest,cur);}
+  openModal(`
+    <div class="cert">
+      <p class="k">21 天打卡完成凭证</p>
+      <h3>行为记录</h3>
+      <p class="sub">演示顾客 · ${esc(c.joinDate||todayStr())} 开营 → ${todayStr()} 结营 · 21 天${themeOf(c.theme).name}</p>
+      <div class="row"><div><b class="num">${days}</b><span>打卡天数</span></div><div><b class="num">${longest}</b><span>最长连续</span></div></div>
+      ${miniMap(Object.fromEntries(Object.entries(c.checkins).map(([k,v])=>[k,v.tag])))}
+      <p class="say">「你亲手把『时间』填进了那道公式。」</p>
+      <div class="watermark">${WATERMARK}</div>
+    </div>
+    <p class="small-note" style="margin-top:12px">想继续练下一关、或想系统学健康观念的，可以私信营主「继续」，会收到一份通用介绍，不勉强。</p>
+    <button class="cbtn" style="margin-top:12px" onclick="closeModal()">收好了</button>`);
+}
+function showReview(){
+  const days=checkedDays();
+  const feelSet=new Set([
+    ...Object.keys(S.priv.feelTags).filter(k=>(S.priv.feelTags[k]||[]).length),
+    ...Object.keys(S.priv.feelText).filter(k=>(S.priv.feelText[k]||'').trim()),
+  ]);
+  openModal(`
+    <h3 style="font-family:var(--serif);font-size:20px">🔒 我的 21 天（仅本人）</h3>
+    <p style="margin-top:10px;font-size:14px">打卡 <b class="num">${days}</b> 天 · 给自己写过 <b class="num">${feelSet.size}</b> 天感受</p>
+    <div class="mini-map feelmap" style="margin-left:0">${Array.from({length:21},(_,i)=>`<i class="${feelSet.has(String(i+1))?'hit':''}"></i>`).join('')}</div>
+    <p class="small-note">上面是你给自己写过感受的日子（仅本人可见的自我记录）。</p>
+    <p style="font-size:13px;opacity:.8;margin-top:12px">21 天前，我以为一件小事没用。21 天后，我最想说的一句是：</p>
+    <textarea class="feel-input" id="witnesstext" placeholder="原来我真的能坚持一件小事">${esc(S.priv.witness)}</textarea>
+    <div id="witnessblocked"></div>
+    <p class="small-note">这句话只存在你自己手机里，不会被引导发到任何群。</p>
+    <button class="cbtn" style="margin-top:12px" onclick="saveWitness()">存给自己</button>`);
+}
+function saveWitness(){
+  const v=$('#witnesstext').value;
+  if(therapyBlock(v)){ $('#witnessblocked').innerHTML=`<div class="result-blocked">${COLD_SCRIPT}<br><span style="font-size:11px;opacity:.8">这句里有疗效词，存不进去——坚持可以夸，疗效不能记。</span></div>`; return; }
+  S.priv.witness=v; save(); closeModal(); toast('存好了，只属于你');
+}
+
+/* ---------- S8 公开分享卡（白名单） ---------- */
+function openShare(type){
+  const days=checkedDays(), st=streakNow();
+  const mapTags=Object.fromEntries(Object.entries(S.camp.checkins).map(([k,v])=>[k,v.tag]));
+  const payload = type==='selfcheck' ? {type,date:todayStr()} : {type,dayN:Math.max(days,1),streak:st,mapTags,theme:S.camp.theme||'water'};
+  const res=renderShareCard(payload);
+  if(!res.ok){toast(res.reason);return;}
+  track('share_card_gen',{type});
+  openModal(`
+    <h3 style="font-size:18px">公开分享卡（只含行为信息）</h3>
+    ${res.html}
+    <p class="c-kicker" style="margin-top:16px">配句话（四选一，不可改）</p>
+    <div class="cap-list" id="caplist">
+      ${CAPTIONS.map((c,i)=>`<label class="${i===0?'on':''}"><input type="radio" name="cap" ${i===0?'checked':''} onchange="[...document.querySelectorAll('#caplist label')].forEach((l,j)=>l.classList.toggle('on',j===${i}))"><span>${esc(c.replace('{N}',String(Math.max(days,1))))}</span></label>`).join('')}
+    </div>
+    <button class="cbtn" style="margin-top:14px" onclick="closeModal();toast('演示：卡片+链接已复制。链接只有 campId 和 inviteToken 两个参数。')">复制卡片和邀请链接</button>
+    <p class="small-note" style="text-align:center">链接：${makeInviteLink().replace('https://','')}</p>
+    <button class="cbtn ghost" onclick="closeModal()">这次先不发</button>`);
+}
+
+/* ============================================================
+   B 端 · 从业者视角
+============================================================ */
+function renderB(){
+  const bar=$('#btabbar');
+  bar.innerHTML=[['tour','🧭','闭环导览'],['build','🏕️','建营'],['board','📊','看板'],['mat','🎁','物料'],['guard','🛡️','围栏']]
+    .map(([k,ic,lab])=>`<button class="${S.btab===k?'on':''}" onclick="S.btab='${k}';save();render()"><span class="ic">${ic}</span>${lab}</button>`).join('');
+  bar.classList.remove('hide');
+  ({tour:renderTour,build:renderBuild,board:renderBoard,mat:renderMat,guard:renderGuard})[S.btab]();
+  /* 每屏 FOOT（B 端同样适用） */
+  VB.insertAdjacentHTML('beforeend',`<p class="foot-note" style="color:var(--bink3);border-color:var(--bline)">${FOOT}</p>`);
+}
+function jumpC(stage,tab){ S.role='c'; if(stage)S.cstage=stage; if(tab)S.ctab=tab; save(); render(); }
+
+/* ---------- 闭环导览 ---------- */
+function renderTour(){
+  const steps=[
+    ['发一条自检链接给老顾客','你不用会写文案，招募话术是现成的，禁语都标红了。',()=>jumpC('welcome')],
+    ['顾客 5 分钟拿到私密画像','她信了，因为报告说的是她自己填的，不是你说的。',()=>S.selfcheck.done?jumpC('report'):(jumpC('welcome'),toast('先以顾客身份做一遍自检，这一步就能点进去了'))],
+    ['自选一个 21 天免费习惯营','营是她自己选的，不是你推的——开口的理由是她给你的。',()=>S.selfcheck.done?jumpC('match'):(jumpC('welcome'),toast('先完成自检'))],
+    ['21 天里机器数数、你只做人味儿','助教每日分钟数就在看板上，软件替你自证省时间。',()=>{S.btab='board';save();render();}],
+    ['行为记录变信任 → 她主动私信「继续」','承重的是行为指标：留存、主动咨询、私聊同意——不是体感、不是嘴上说好。刀递到手边，但成交在你微信里，平台不碰钱。',()=>{S.btab='mat';save();render();toast('看「成交桥」卡')}],
+    ['她发同行卡，把亲友装进你下一个营','她拉人没有任何好处，所以这话敢写在官方文案里。零利益邀请 = 零传销风险，你晚上睡得着。',()=>S.camp.joined?(jumpC('camp','me'),toast('在「我的」里点「给在乎的人留同行位」')):(jumpC('welcome'),toast('先以顾客身份入营'))],
+  ];
+  window.__tourGo=steps.map(s=>s[2]);
+  VB.innerHTML=`
+    <h2 style="font-size:19px;margin-top:8px">这个软件怎么帮你服务客户、带来新客户</h2>
+    <p class="desc" style="color:var(--bink2);font-size:13px;margin-top:6px">六步一个闭环，每一步都能点进去看实景。</p>
+    <details class="fold"><summary>⏱️ 30 秒上手导览（怎么给同行演示）</summary><div class="fbody">
+      <ol style="margin:8px 0 0;padding-left:18px;color:var(--bink2);font-size:13px;line-height:1.9">
+        <li>切「顾客视角」，走完 自检 → 报告 → 选营 → Day0 预打卡；</li>
+        <li>顶部拨盘拨 Day3 / Day7 / Day21，看徽章、地图、结营凭证、同行卡；</li>
+        <li>切回「从业者视角」看看板：同一个营，你只看得到行为数据，分数/体感的位置是 🔒；</li>
+        <li>进「围栏」，亲手试 6 种“绕过”被拦；</li>
+        <li>回这里，看整条闭环。</li>
+      </ol>
+      <p style="font-size:12px;color:var(--bink3);margin-top:8px">顾客端打的卡，看板实时 +1——两个视角共享同一份演示数据。</p>
+    </div></details>
+    <div class="b-card">
+      ${steps.map((s,i)=>`
+      <div class="tour-step" onclick="__tourGo[${i}]()">
+        <div class="n">${i+1}</div>
+        <div class="t"><h4>${s[0]}</h4><p>${s[1]}</p><p class="go">点击看实景 →</p></div>
+      </div>`).join('')}
+      <p class="tour-loop">↺ 亲友点开同行卡 → 回到第 ① 步，闭环。</p>
+    </div>
+    <p class="mock-wm">以上为演示动线与内置假设数据，非收益承诺，不得用于对外招商/宣传口径；本工具为 pilot 前证伪原型。</p>`;
+}
+
+/* ---------- 建营向导 ---------- */
+function renderBuild(){
+  VB.innerHTML=`
+    <h2 style="font-size:19px;margin-top:8px">建营 · 为你的一位顾客产出第一件工作物</h2>
+    <div class="b-card">
+      <p class="b-kicker">第 1 步 · 选主题</p>
+      <h3 style="margin-top:8px">💧 一件小事 · 第 1 关：一杯水</h3>
+      <p class="desc">21 天喝水营。早睡营 / 晒太阳营为演示样例，正式版陆续上架。</p>
+    </div>
+    <div class="b-card">
+      <p class="b-kicker">第 2 步 · 内容排期（自动）</p>
+      <p class="desc" style="margin-top:6px"><b style="color:var(--bink)">这 21 天的内容都是现成的，你零内容工作。</b></p>
+      <table class="evt"><tr><th>日</th><th>内容卡</th></tr>
+        <tr><td class="num">D1</td><td>「好习惯 × 时间」公式开场 + 欢迎语音位</td></tr>
+        <tr><td class="num">D2–D4</td><td>惊喜前置：D2 晚「熬过第 3 天就稳一大半」· D3 徽章</td></tr>
+        <tr><td class="num">D5</td><td>垫纸回看</td></tr>
+        <tr><td class="num">D6–D15</td><td>每天一条 6 岁能懂的小故事（题库自动排）</td></tr>
+        <tr><td class="num">D16</td><td>「把喝水这件事教给家里一个人」（纯内容任务）</td></tr>
+        <tr><td class="num">D17–D21</td><td>收尾周 + 结营凭证 + 私有回顾</td></tr>
+      </table>
+    </div>
+    <div class="b-card">
+      <p class="b-kicker">第 3 步 · 招募话术（现成的，照发）</p>
+      <div class="script-card">「我最近在带一个 21 天喝水打卡营，免费的，每天就花 5 秒点一下。不测健康、不卖东西，就是陪你把『每天好好喝一杯水』这件小事做成。想玩的话我发你链接。」</div>
+      <div class="redline-edu">
+        <span>❌ 不说能治什么</span><span>❌ 不说名额有限</span><span>❌ 不说拉人有好处</span><span>❌ 不放价格</span>
+      </div>
+      <div class="zone" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="bbtn" onclick="toast('演示：话术+链接已复制 · '+makeInviteLink())">复制话术 + 营链接</button>
+        <span class="mono" style="font-size:11px;color:var(--bink3);align-self:center">${makeInviteLink().replace('https://','')}</span>
+      </div>
+      <p class="mock-wm">链接只带 campId / inviteToken 两个参数——谁拉了谁，系统不记、不奖、不排。</p>
+    </div>`;
+}
+
+/* ---------- 看板 ---------- */
+function boardMetrics(){
+  return [['47','今日打卡数'],['78%','D3 留存'],['61%','D7 留存'],['42%','完营进度'],['9%','主动咨询率'],['73%','私聊同意率'],['14 分钟','助教今日运营用时']];
+}
+function renderBoard(){
+  const authed=S.auth.behavior, myDays=checkedDays();
+  const view=S.guard.boardView||'work';
+  const lockHtml=S.riskLock?`<div class="blocked-b">🔒 触达模块已自动关闭（${esc(S.riskLockBy)}超阈值）。不可改名继续运行。</div>`:'';
+  VB.innerHTML=`
+    <h2 style="font-size:19px;margin-top:8px">看板 · 21 天喝水营（演示营）</h2>
+    <div class="b-card" style="border-color:#3b5a46">
+      <h3>🧷 三不必背卡</h3>
+      <p class="desc"><b style="color:var(--bink)">不诊断 · 不解释分数 · 不推荐检查治疗。</b>顾客问健康问题 → 「这得问医生，咱营里只管把小习惯做成。」</p>
+    </div>
+    <div class="b-card">
+      <span class="segtog" style="background:var(--bpanel2)">
+        <button class="${view==='work'?'on':''}" onclick="S.guard.boardView='work';save();render()">工作台</button>
+        <button class="${view==='see'?'on':''}" onclick="S.guard.boardView='see';save();render()">顾客授权后你能看到什么</button>
+      </span>
+      ${view==='work'?`
+      <div class="metric-grid">
+        ${boardMetrics().map(([v,l])=>`<div class="metric"><b>${v}</b><span>${l}</span><span class="wm">演示假数据</span></div>`).join('')}
+      </div>
+      <p class="mock-wm">演示假数据 · 参数假设下的演示结果，不是预测或承诺。无「邀请数 / 同行卡数」指标——字段不存在。</p>
+      `:`
+      <table class="evt" style="margin-top:12px">
+        <tr><th>字段</th><th>你能看到吗</th></tr>
+        <tr><td>打卡日期 / 天数 / 是否掉队</td><td style="color:#86efac">✓ 顾客单独授权后可见</td></tr>
+        <tr><td>自检分数 / 雷达 / 信号灯</td><td class="locked">🔒 无此字段（工程级不可见）</td></tr>
+        <tr><td>感受记录（体感）</td><td class="locked">🔒 无此字段（工程级不可见，且永不可授权）</td></tr>
+      </table>
+      <p class="desc" style="margin-top:10px">她的分数和感受你从头到尾看不到、也用不上——这正是你敢大声演示的原因。</p>`}
+    </div>
+
+    <div class="b-card">
+      <h3>学员 · ${MOCK_STUDENTS.length+1} 人 <span class="bpill mock">除演示顾客外均为假数据</span></h3>
+      <div class="stu-row">
+        <div class="av">🫵</div><div class="nm">演示顾客（你刚才操作的）</div>
+        <div class="st">${authed?`打卡 <b class="num">${myDays}</b> 天 · 连续 <b class="num">${streakNow()}</b> 天 ${myDays===0?'· 还没开始':''}`:`<span class="locked">未授权 · 不可见</span>`}</div>
+      </div>
+      ${MOCK_STUDENTS.map((m,i)=>`
+      <div class="stu-row">
+        <div class="av">${m.av}</div><div class="nm">${m.name}</div>
+        <div class="st">${m.auth?`打卡 ${m.days} 天${m.laggard?' · <span style="color:var(--bwarn)">两天没动静</span>':''}`:`<span class="locked">未授权 · 不可见</span>`}</div>
+        ${m.auth&&m.laggard?`<button class="bbtn sm sec" ${S.riskLock?'disabled':''} onclick="careModal('${m.name}')">关怀</button>`:''}
+      </div>`).join('')}
+      ${lockHtml}
+    </div>
+
+    <div class="b-card">
+      <h3>服务提醒名单 <span class="bpill info">二次 opt-in</span></h3>
+      <p class="desc">入营 ≠ 可以私聊跟进。单独发起、单独同意、拒绝即锁 7 天、每次触达留痕。</p>
+      ${optinRows().map(r=>`
+      <div class="stu-row"><div class="nm" style="min-width:110px">${esc(r.name)}</div>
+        <div class="st">${r.optin?'<span class="bpill ok">已同意服务提醒</span>':(r.lockLeft>0?`<span class="bpill bad">已拒绝 · 锁定中（剩 ${r.lockLeft} 天）</span>`:'<span class="bpill mock">未发起 / 未同意</span>')}</div>
+        ${r.optin?`<button class="bbtn sm" ${S.riskLock?'disabled':''} onclick="outreachModal('${esc(r.name)}')">记录本次触达</button>`
+                 :(r.lockLeft>0?`<button class="bbtn sm sec" disabled>7 天内不可再发起</button>`
+                 :`<button class="bbtn sm sec" ${S.riskLock?'disabled':''} onclick="optinModal('${esc(r.name)}',${r.me?'true':'false'})">发起提醒授权</button>`)}
+      </div>`).join('')}
+      <p class="mock-wm">拒绝也是数据。被拒后 7 天内「发起提醒授权」按钮工程级锁死，不是文案约定。</p>
+      ${S.outreach.length?`<table class="evt"><tr><th>时间</th><th>对象</th><th>原因</th><th>渠道</th><th>话术</th><th>被拒</th></tr>
+        ${S.outreach.map(o=>`<tr><td class="num">${o.t.slice(11,16)}</td><td>${esc(o.who)}</td><td>${o.reason}</td><td>${o.channel}</td><td>${o.script}</td><td>${o.rejected?'是':'否'}</td></tr>`).join('')}</table>`:''}
+    </div>
+
+    <div class="b-card">
+      <h3>风险仪表 <span class="bpill mock">拖动滑块试试自动锁</span></h3>
+      ${RISK_DEFS.map(([k,lab,th])=>{
+        const v=S.guard['risk_'+k]??Math.round(th*0.4);
+        return `<div class="dial-row"><div class="lab"><span>${lab}（阈值 ${th}%）</span><b class="num ${v>th?'over':''}">${v}%</b></div>
+        <input type="range" min="0" max="60" value="${v}" oninput="riskSet('${k}',this.value)"></div>`;}).join('')}
+      ${S.riskLock?`<div class="blocked-b">🔒 触达模块已自动关闭（${esc(S.riskLockBy)}超阈值）。不可改名继续运行。</div>`:`<p class="mock-wm">任一指标超阈值 → 掉队关怀与服务提醒模块整体锁死。</p>`}
+    </div>
+
+    <div class="b-card">
+      <h3>群里有人说「喝了血压降了」怎么办</h3>
+      <div class="script-card">${COLD_SCRIPT}</div>
+      <p class="desc">统一冷处理：不点赞、不追问、不转发。</p>
+    </div>
+
+    <details class="fold"><summary>🧪 pilot 埋点（16 项事件字典 · CSV 导出 · 12 项预注册指标）</summary><div class="fbody">
+      <button class="bbtn sm" onclick="exportCSV()" style="margin-top:8px">导出事件流水 CSV（带 BOM）</button>
+      <span class="mono" style="font-size:11px;color:var(--bink3);margin-left:8px">当前 ${S.events.length} 条</span>
+      <table class="evt"><tr><th>事件</th><th>说明</th></tr>
+        ${EVENT_DICT.map(([k,d])=>`<tr><td class="mono">${k}</td><td>${d}</td></tr>`).join('')}</table>
+      <p class="mock-wm">private.*（感受内容、见证）显式排除在 CSV 字段表之外——不是“不导”，是字段不存在。</p>
+      <p class="b-kicker" style="margin-top:12px">12 项预注册指标（只读）</p>
+      <table class="evt"><tr>${PREREG_METRICS.slice(0,4).map(m=>`<th>${m}</th>`).join('')}</tr><tr>${PREREG_METRICS.slice(4,8).map(m=>`<th>${m}</th>`).join('')}</tr><tr>${PREREG_METRICS.slice(8).map(m=>`<th>${m}</th>`).join('')}</tr></table>
+    </div></details>`;
+}
+const RISK_DEFS=[['reject','拒绝率',30],['quit','退营率',25],['complain','投诉率',5],['revoke','撤回授权率',10]];
+function riskSet(k,v){
+  S.guard['risk_'+k]=+v;
+  const over=RISK_DEFS.filter(([kk,,tt])=>(S.guard['risk_'+kk]??0)>tt);
+  S.riskLock=over.length>0;
+  S.riskLockBy=over.map(([,lab])=>lab).join('、');
+  save();render();
+}
+function careModal(name){
+  openModal(`<h3 style="font-size:17px">掉队关怀 · ${esc(name)}</h3>
+    <p class="desc" style="margin-top:8px;color:inherit;opacity:.75;font-size:13px">只给白名单话术，没有群内点名功能。</p>
+    <div class="script-card">${CARE_SCRIPT}</div>
+    <button class="bbtn" style="margin-top:12px" onclick="closeModal();outreachModal('${esc(name)}','掉队关怀')">已私聊 · 记录本次触达</button>
+    <button class="bbtn sec" style="margin-top:8px" onclick="closeModal()">先不打扰</button>`);
+}
+function optinRows(){
+  const now=Date.now(), D7=7*86400000;
+  const rows=[{
+    name:'演示顾客（你）',me:true,
+    optin:S.auth.remind,
+    lockLeft:S.auth.remindRejectedUntil>now?Math.ceil((S.auth.remindRejectedUntil-now)/86400000):0,
+  }];
+  MOCK_STUDENTS.filter(m=>m.auth).forEach(m=>{
+    const ov=S.mockOptin[m.name]||{};
+    rows.push({
+      name:m.name,me:false,
+      optin:ov.optin!==undefined?ov.optin:m.optin,
+      lockLeft:ov.rejectedUntil>now?Math.ceil((ov.rejectedUntil-now)/86400000):0,
+    });
+  });
+  return rows;
+}
+function optinModal(name,isMe){
+  openModal(`<h3 style="font-size:17px">发起提醒授权 · ${esc(name)}</h3>
+    <p class="desc" style="margin-top:8px;opacity:.75;font-size:13px">顾客手机上会看到（demo 模拟顾客端弹窗）：</p>
+    <div class="script-card" style="text-align:center"><b>「${OPTIN_TEXT}」</b><br><br>
+      <button class="bbtn sm" onclick="optinAnswer(${isMe},true,'${esc(name)}')">同意</button>
+      <button class="bbtn sm sec" style="margin-left:8px" onclick="optinAnswer(${isMe},false,'${esc(name)}')">不同意</button>
+    </div>`);
+}
+function optinAnswer(isMe,yes,name){
+  const D7=7*86400000;
+  if(isMe){
+    S.auth.remind=yes;
+    if(!yes)S.auth.remindRejectedUntil=Date.now()+D7;
+    S.auth.log.push({t:new Date().toISOString(),act:yes?'auth_grant':'auth_revoke',scope:'服务提醒'});
+  }else{
+    S.mockOptin[name]=yes?{optin:true}:{optin:false,rejectedUntil:Date.now()+D7};
+  }
+  save(); track(yes?'auth_grant':'auth_revoke',{scope:'remind',demo:!isMe});
+  closeModal(); toast(yes?'对方已同意服务提醒':'对方拒绝了。7 天内不可再次发起（按钮已锁死）。'); render();
+}
+function outreachModal(name,presetReason){
+  openModal(`<h3 style="font-size:17px">记录本次触达 · ${esc(name)}</h3>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px;font-size:13px">
+      <label>触达原因<br><select id="o_reason" style="width:100%;padding:8px;background:var(--bpanel2);color:var(--bink);border:1px solid var(--bline);border-radius:8px">
+        <option ${presetReason==='掉队关怀'?'selected':''}>掉队关怀</option><option>用户主动请求</option></select></label>
+      <label>渠道<br><select id="o_channel" style="width:100%;padding:8px;background:var(--bpanel2);color:var(--bink);border:1px solid var(--bline);border-radius:8px">
+        <option>微信私聊</option><option>群内</option></select></label>
+      <label>话术版本<br><select id="o_script" style="width:100%;padding:8px;background:var(--bpanel2);color:var(--bink);border:1px solid var(--bline);border-radius:8px">
+        <option>白名单 A：回来就算继续</option><option>白名单 B：搭档接住</option></select></label>
+      <label>是否被拒<br><select id="o_rej" style="width:100%;padding:8px;background:var(--bpanel2);color:var(--bink);border:1px solid var(--bline);border-radius:8px">
+        <option value="0">否</option><option value="1">是</option></select></label>
+    </div>
+    <button class="bbtn" style="margin-top:14px" onclick="outreachSave('${esc(name)}')">写入事件流水</button>`);
+}
+function outreachSave(who){
+  const rec={t:new Date().toISOString(),who,reason:$('#o_reason').value,channel:$('#o_channel').value,script:$('#o_script').value,rejected:$('#o_rej').value==='1'};
+  S.outreach.push(rec);save();track('outreach_log',rec);closeModal();toast('已留痕');render();
+}
+
+/* ---------- 物料 ---------- */
+function renderMat(){
+  VB.innerHTML=`
+    <h2 style="font-size:19px;margin-top:8px">物料 · 一键出图，模板固定不可改</h2>
+    <div class="b-card">
+      <h3>晚 8:00 报故事播报图</h3>
+      <p class="desc">规则烧死在模板里：具体人在前、总数当背景、掉队者隐形、无榜单、无效果字段、水印强制。</p>
+      <button class="bbtn sm" style="margin-top:8px" onclick="showBroadcastMat()">生成今晚播报</button>
+    </div>
+    <div class="b-card">
+      <h3>里程碑卡（仅 3 枚：D3 / D7 / D21）</h3>
+      <div class="badge-row" style="max-width:340px">
+        ${[['🌱','Day3'],['🌿','Day7'],['🏆','Day21']].map(([ic,d])=>`<div class="badge lit" style="background:var(--bpanel2);border-color:var(--bline)"><div class="ic">${ic}</div><p style="color:var(--bink2)">${d}</p></div>`).join('')}
+      </div>
+      <p class="mock-wm">出图时固定水印：${WATERMARK}。</p>
+    </div>
+    <div class="b-card">
+      <h3>《21 天打卡完成凭证》样张</h3>
+      <p class="desc">副标题「行为记录」，水印烧进渲染函数——没有水印就出不了图。</p>
+      <button class="bbtn sm sec" style="margin-top:8px" onclick="showCertSample()">看样张</button>
+    </div>
+    <div class="b-card">
+      <h3>绿灯邀请模板（4 条 · 只读）</h3>
+      ${CAPTIONS.map(c=>`<div class="script-card" style="margin-top:8px;font-size:13px">${esc(c.replace('{N}','7'))}</div>`).join('')}
+    </div>
+    <div class="b-card">
+      <h3>关心签</h3>
+      <p class="desc">闭集关系模板，生成后你自己微信发，平台不采、不验、不计。</p>
+      <div class="script-card">「入夏了，给爸妈的那杯温水别忘了 —— 你营里的老王」<br><span style="font-size:11px;opacity:.6">固定水印：这是一份关心，不是健康建议</span></div>
+    </div>
+    <div class="b-card" style="border-color:#5b4a1e">
+      <h3>成交桥 · 三步 <span class="bpill warn">内部工具 · 顾客端不可见</span></h3>
+      <ol style="margin:10px 0 0;padding-left:18px;color:var(--bink2);font-size:13.5px;line-height:1.9">
+        <li>免费 21 天习惯营 —— 证明「养个小习惯你就有感觉」；</li>
+        <li>想系统搞懂健康、拿更大结果 → <b style="color:var(--bink)">7680 元《21 天健康观念实战班》</b>（教育产品，主变现）；</li>
+        <li><b style="color:var(--bink)">499 VIP</b> 作次级入口。</li>
+      </ol>
+      <p class="desc" style="margin-top:10px"><b style="color:var(--bink)">规则：</b>仅当顾客主动私信「继续」并二次确认后，发通用介绍；不引用其任何自检数据；无价格谈判话术、无倒计时、无名额话术。成交在你微信里，平台不碰钱、不抽佣、不新增佣金层。</p>
+      <button class="bbtn" style="margin-top:10px" onclick="bridgePreview()">模拟顾客视角预览</button>
+    </div>`;
+}
+function showBroadcastMat(){
+  /* 播报物料统一由此渲染：模板固定、水印强制拼入 */
+  openModal(`
+    <div class="broadcast" style="margin-top:0"><div class="k">今晚的播报（模板固定）</div>
+    今天看到 @张姐 六点就打卡了，@李哥 出差高铁上都没忘——这样的人，今天群里有 47 个。
+    <div style="font-size:10px;opacity:.7;margin-top:10px;border-top:1px dashed rgba(255,255,255,.3);padding-top:7px">${WATERMARK}</div></div>
+    <button class="bbtn" style="margin-top:12px" onclick="closeModal();toast('演示：播报图已复制')">复制到群（演示）</button>`);
+}
+function showCertSample(){
+  openModal(`<div class="cert" style="background:linear-gradient(160deg,#fffdf8,#f2ecdd);color:var(--ink)">
+    <p class="k">21 天打卡完成凭证</p><h3 style="color:var(--ink)">行为记录</h3>
+    <p class="sub">（样张）李某某 · 2026-08-01 结营 · 21 天喝水营</p>
+    <div class="row"><div><b class="num">21</b><span>打卡天数</span></div><div><b class="num">18</b><span>最长连续</span></div></div>
+    <p class="say">「你亲手把『时间』填进了那道公式。」</p>
+    <div class="watermark">${WATERMARK}</div></div>
+    <button class="bbtn" style="margin-top:12px" onclick="closeModal()">收起</button>`);
+}
+function bridgePreview(){
+  openModal(`<h3 style="font-size:17px">模拟顾客视角 · 成交桥跑通的样子</h3>
+    <p class="desc" style="opacity:.75;font-size:12.5px;margin-top:6px">顾客真实旅程界面零商业触点；下面是她主动私信后你这边的流程。</p>
+    <div class="script-card" style="margin-top:12px">顾客：「继续」</div>
+    <div class="script-card">你（二次确认）：「确定要收一份课程通用介绍吗？不勉强。」</div>
+    <div class="script-card">顾客：「嗯，发我看看。」</div>
+    <div class="script-card" style="border-style:solid"><b>《21 天健康观念实战班》</b><br>系统学健康观念的 21 天实战课。<br><span style="font-size:11px;opacity:.6">通用介绍卡：无价格、无倒计时、不含该顾客任何数据。</span></div>
+    <button class="bbtn" style="margin-top:12px" onclick="closeModal()">明白了</button>`);
+}
+
+/* ---------- 围栏演示 ---------- */
+/* 通过状态只存内存：每次打开页面都要现场重新验证，代码回归后旧的 6/6 不会残留 */
+const GP={};
+function guardPassCount(){ return ['g1','g2','g3','g4','g5','g6'].filter(k=>GP[k]===true).length; }
+function guardPass(key,html){ GP[key]=true; GP['msg_'+key]=html; render(); }
+function guardFail(key,html){ GP[key]=false; GP['msg_'+key]=`<div class="blocked-b" style="border-color:#f59e0b;color:#fcd34d">⚠️ 围栏失效：${html}——工程红线被破坏，须修复！</div>`; render(); }
+function renderGuard(){
+  const n=guardPassCount();
+  VB.innerHTML=`
+    <h2 style="font-size:19px;margin-top:8px">围栏演示 · 你想犯错，都犯不了</h2>
+    <div class="b-card">
+      <div class="gauge"><div class="ring" style="--p:${n/6*100}"><b class="num">${n}/6</b></div>
+        <p class="gt">六种“绕过”的路，一条条亲手试。全部被挡 = 围栏完备。<br><span style="color:var(--bink3);font-size:11.5px">这些拦截是工程实现（词表 / 白名单 / 字段权限 / 剥参），不是文案声明。</span></p></div>
+    </div>
+
+    <div class="attack-card redline-edu">
+      <h4>① 想开一个“治病味儿”的营 ${gpill('g1')}</h4>
+      <p class="sc">试试给营起个诊疗化的名字：</p>
+      <div class="zone"><input type="text" id="atk1" placeholder="输入营名试试">
+        <button class="bbtn sm sec" onclick="$('#atk1').value='对症调理营'">一键填入</button>
+        <button class="bbtn sm" onclick="atk1()">提交</button></div>
+      <div id="atk1r">${GP.msg_g1||''}</div>
+      <p class="why">为什么是红线：给身体下判断＝无证诊疗。营名只能落在「习惯」上。</p>
+    </div>
+
+    <div class="attack-card redline-edu">
+      <h4>② 想把疗效写进记录 ${gpill('g2')}</h4>
+      <div class="zone"><input type="text" id="atk2" placeholder="写一句心得试试">
+        <button class="bbtn sm sec" onclick="$('#atk2').value='喝了半个月，我血压降了'">一键填入</button>
+        <button class="bbtn sm" onclick="atk2()">提交</button></div>
+      <div id="atk2r">${GP.msg_g2||''}</div>
+      <p class="why">为什么是红线：个体疗效叙事＝变相疗效宣传。坚持可以夸，疗效不能记。</p>
+    </div>
+
+    <div class="attack-card redline-edu">
+      <h4>③ 想把学员的“体感”导出来 ${gpill('g3')}</h4>
+      <p class="sc">向私有字段注入哨兵值，然后走一遍真实导出与海报渲染，看它能不能漏出来：</p>
+      <div class="zone"><button class="bbtn sm" onclick="atk3()">注入哨兵 → 真实导出 CSV + 渲染海报</button></div>
+      <div id="atk3r">${GP.msg_g3||''}</div>
+      <p class="why">为什么是红线：体感只属于用户本人。这里不是“权限没开”，是输出路径里压根没有这个字段。</p>
+    </div>
+
+    <div class="attack-card redline-edu">
+      <h4>④ 想把她的雷达图塞进分享卡 ${gpill('g4')}</h4>
+      <div class="zone"><button class="bbtn sm" onclick="atk4()">尝试注入 score + radar 字段</button></div>
+      <div id="atk4r">${GP.msg_g4||''}</div>
+      <p class="why">为什么是红线：分享卡是白名单模板，只认行为字段，多一个都渲染不出来。</p>
+    </div>
+
+    <div class="attack-card redline-edu">
+      <h4>⑤ 学员撤回授权，看板还看得到吗 ${gpill('g5')}</h4>
+      <p class="sc">在隔离快照里真实执行「授权 → 渲染看板 → 撤回 → 再渲染」，断言两次输出（不影响你当前的真实授权）：</p>
+      <div class="zone"><button class="bbtn sm" onclick="atk5()">一键验证：授权 → 撤回 → 看板断言</button></div>
+      <div id="atk5r">${GP.msg_g5||''}</div>
+      <p class="why">为什么是红线：授权可撤回且即刻生效，操作留痕。加入营 ≠ 授权数据。</p>
+    </div>
+
+    <div class="attack-card redline-edu">
+      <h4>⑥ 想在链接里夹带分销归因参数 ${gpill('g6')}</h4>
+      <div class="zone"><input type="text" id="atk6" value="?campId=demo01&pid=123&shareUserId=abc">
+        <button class="bbtn sm" onclick="atk6()">模拟打开</button></div>
+      <div id="atk6r">${GP.msg_g6||''}</div>
+      <div class="zone"><button class="bbtn sm sec" onclick="atk6b()">顺手自检：C 端界面搜「7680 / 499 / 名额 / 倒计时」</button></div>
+      <div id="atk6br">${GP.msg_g6b||''}</div>
+      <p class="why">为什么是红线：邀请一旦接上分销归因，「学员拉学员」就可能踩传销。解析器只认 campId / inviteToken。</p>
+    </div>
+
+    <div class="b-card">
+      <h3>上线前必备（未实现）</h3>
+      ${['从业者电子协议（不诊疗 + 不承诺收益条款）','上岗培训与考试','违规停权机制','操作审计后台','举报处理台','多营并行管理','大春问答库答疑','真实群发 / 推送','早睡营 / 晒太阳营完整内容包'].map(x=>`<div class="gray-card"><span class="gtag">未实现</span>${x}</div>`).join('')}
+      <div class="gray-card redline-edu" style="border-style:solid;color:var(--bink2)"><span class="gtag" style="background:#7f1d1d;color:#fca5a5">永不做</span>客户健康档案 / CRM 客情本 · 邀请排行榜 · 「谁焐热了」个人榜 · 「谁拉谁」个人归因——这些不是没做完，是不存在也永不做。</div>
+    </div>`;
+}
+function gpill(k){
+  if(GP[k]===true)return '<span class="bpill ok">已拦截 ✓</span>';
+  if(GP[k]===false)return '<span class="bpill bad">围栏失效!</span>';
+  return '';
+}
+function atk1(){
+  const v=$('#atk1').value||'';
+  if(NAMING_BLOCKLIST.some(w=>v.includes(w))||/对症|调理|治|症/.test(v)){
+    guardPass('g1',`<div class="blocked-b">🚫 营名被拦截：命中命名禁词。请落在「习惯」上，比如「21 天喝水营」。</div>`);
+  } else $('#atk1r').innerHTML=`<div class="pass-b">这个名字没问题。试试点「一键填入」再提交，看拦截长什么样。</div>`;
+}
+function atk2(){
+  const v=$('#atk2').value||'';
+  if(therapyBlock(v)) guardPass('g2',`<div class="blocked-b">🚫 ${COLD_SCRIPT}<br>这条不会被保存，也不会出现在任何群、任何海报里。</div>`);
+  else $('#atk2r').innerHTML=`<div class="pass-b">这句没有疗效词，可以存。试试「一键填入」。</div>`;
+}
+function atk3(){
+  /* 真实负向断言：隔离快照注入私有哨兵 → 走真实 buildCSV / 分享卡 / 凭证渲染 → 断言不泄漏 */
+  const bak=JSON.stringify(S), SENT='PRIV_SENTINEL_9x7q';
+  let leaked=false, evidence=[];
+  try{
+    S=JSON.parse(bak);
+    S.priv.feelText['9']=SENT; S.priv.feelTags['9']=[SENT]; S.priv.witness=SENT;
+    track('checkin',{day:9,tag:'☀️'});          /* 正常事件照走 */
+    const csv=buildCSV();
+    if(csv.includes(SENT)){leaked=true;evidence.push('CSV');}
+    const poster=renderShareCard({type:'poster',dayN:9,streak:9,mapTags:{},theme:'water'});
+    if(poster.ok&&poster.html.includes(SENT)){leaked=true;evidence.push('海报');}
+    const comp=renderShareCard({type:'companion',dayN:9,streak:9,mapTags:{}});
+    if(comp.ok&&comp.html.includes(SENT)){leaked=true;evidence.push('同行卡');}
+  }finally{ S=JSON.parse(bak); save(); /* 快照期间 track() 落过盘，恢复后重新持久化干净状态 */ }
+  if(leaked) guardFail('g3',`私有哨兵值出现在：${evidence.join('、')}`);
+  else guardPass('g3',`<div class="blocked-b">🚫 已注入私有哨兵并真实执行导出与渲染：CSV（字段表 <span class="mono">time / event / data</span> + 私有键净化）、海报、同行卡均未出现哨兵值。体感在一切输出路径不可达。</div>`);
+}
+function atk4(){
+  const res=renderShareCard({type:'poster',dayN:7,streak:5,mapTags:{},theme:'water',score:55,radar:[3,4,5,6,7,8]});
+  if(res.ok) guardFail('g4','白名单接受了 score / radar 超集字段');
+  else guardPass('g4',`<div class="blocked-b">🚫 ${esc(res.reason)}。<br>分享卡渲染器只认 <span class="mono">${SHARE_WHITELIST.join(' / ')}</span> 行为字段，且逐值校验合法性。</div>`);
+}
+function atk5(){
+  /* 隔离快照内真实断言：授权态与撤回态各渲染一次看板，检查第一行输出 */
+  const bak=JSON.stringify(S), tabBak=S.btab;
+  let rowOn='',rowOff='';
+  try{
+    S=JSON.parse(bak); S.btab='board';
+    S.auth.behavior=true;  renderBoard(); rowOn =(VB.querySelector('.stu-row')||{}).textContent||'';
+    S.auth.behavior=false; renderBoard(); rowOff=(VB.querySelector('.stu-row')||{}).textContent||'';
+  }finally{ S=JSON.parse(bak); S.btab=tabBak; }
+  const ok=rowOn.includes('打卡')&&rowOff.includes('未授权 · 不可见');
+  if(ok) guardPass('g5',`<div class="blocked-b">🚫 断言通过：授权态看板显示行为数据，撤回后同一行即刻变「未授权 · 不可见」。（本验证在隔离快照中进行，你的真实授权状态未被改动；真实撤回入口在顾客端「我的」，操作会留痕。）</div>`);
+  else guardFail('g5',`撤回授权后看板仍可见（授权态="${esc(rowOn.slice(0,40))}" 撤回态="${esc(rowOff.slice(0,40))}"）`);
+  render();
+}
+function atk6(){
+  const raw=$('#atk6').value||'';
+  const sp=new URLSearchParams(raw.replace(/^\?/,''));
+  const stripped=[...sp.keys()].filter(k=>!['campId','inviteToken'].includes(k));
+  const kept=[...sp.keys()].filter(k=>['campId','inviteToken'].includes(k));
+  if(!stripped.length){
+    $('#atk6r').innerHTML=`<div class="pass-b">这条链接里没有归因参数，没什么可剥的。试试默认值里的 pid / shareUserId。</div>`;
+    return;
+  }
+  guardPass('g6',`<div class="blocked-b">🚫 已剥离参数：<span class="mono">${esc(stripped.join('、'))}</span> → 实际进入系统的只有 <span class="mono">${esc(kept.join('、'))||'（无）'}</span>。</div>`);
+  toast('已移除无关参数');
+}
+function atk6b(){
+  const bak=JSON.stringify(S), revealBak=reportRevealed;
+  let text='';
+  try{
+    S=JSON.parse(bak);
+    S.selfcheck.done=true;S.selfcheck.scores=S.selfcheck.scores||{water:3,sleep:5,food:7,move:4,sun:2,relax:6};
+    S.camp.joined=true;S.camp.theme=S.camp.theme||'water';S.camp.anchor=S.camp.anchor||ANCHORS[0];
+    S.camp.weakDay=S.camp.weakDay||WEAKDAYS[0];S.camp.pact=true;S.camp.day0=true;S.demoDay=21;simulateTo(22);
+    reportRevealed=true;
+    ['welcome','quiz','report','match','join'].forEach(st=>{S.cstage=st;renderC();text+='\n'+VC.textContent;});
+    S.cstage='camp';['today','map','me'].forEach(tb=>{S.ctab=tb;renderC();text+='\n'+VC.textContent;});
+  }finally{ S=JSON.parse(bak); save(); reportRevealed=revealBak; }
+  const hits=(text.match(/7680|499|名额|倒计时/g)||[]);
+  GP.msg_g6b = hits.length
+    ? `<div class="blocked-b">⚠️ 命中 ${hits.length} 处：${esc([...new Set(hits)].join('、'))}——工程红线被破坏，须修复！</div>`
+    : `<div class="pass-b">✓ 已实时渲染并检索 C 端全部 8 个界面（欢迎/问卷/报告/匹配/入营/今日/地图/我的）：「7680 / 499 / 名额 / 倒计时」0 命中。价格只存在于从业者端「成交桥」内部工具卡。</div>`;
+  render();
+}
+
+/* ============================================================
+   总渲染 & 初始化
+============================================================ */
+function render(){
+  document.body.dataset.role=S.role;
+  VC.classList.toggle('hide',S.role!=='c');
+  VB.classList.toggle('hide',S.role!=='b');
+  $('#btabbar').classList.toggle('hide',S.role!=='b');
+  [...document.querySelectorAll('#roletog button')].forEach(b=>b.classList.toggle('on',b.dataset.role===S.role));
+  const dial=$('#daydial');
+  dial.innerHTML=[0,1,3,7,21].map(d=>`<button class="${S.demoDay===d?'on':''}" onclick="setDay(${d})">D${d}</button>`).join('');
+  if(S.role==='c'){$('#btabbar').classList.add('hide');renderC();}
+  else {$('#ctabbar').classList.add('hide');renderB();}
+  scheduleScan();
+}
+function setDay(d){
+  /* 时间旅行回拨：未来日期的记录（含模拟与演示操作）一并清除，防止数据失真 */
+  const removed=Object.keys(S.camp.checkins).filter(k=>+k>d);
+  removed.forEach(k=>delete S.camp.checkins[k]);
+  if(checkedDaysUpTo21()<21) S.camp.completed=false;
+  S.demoDay=d; simulateTo(d); save(); render();
+  toast('演示日期 → Day '+d+(removed.length?'（已清除未来日期的记录）':(d>1&&S.camp.joined?'（往期已自动补模拟打卡）':'')));
+}
+function checkedDaysUpTo21(){ let n=0; for(let i=1;i<=21;i++) if(S.camp.checkins[i]) n++; return n; }
+$('#roletog').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.role=b.dataset.role;save();render();});
+$('#resetbtn').addEventListener('click',()=>{ if(confirm('清空本机演示数据？')){localStorage.removeItem(LS_KEY);location.reload();} });
+
+stripUrlParams();
+render();
+setTimeout(scanNaming,300);
+</script>
+</body>
+</html>

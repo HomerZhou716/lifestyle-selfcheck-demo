@@ -1,0 +1,1449 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生活方式自检 · UI 三方案对比 · 请老板选</title>
+<style>
+/* ============ 对比页壳（方案无关） ============ */
+:root{
+  --shell-bg:#14161a; --shell-ink:#e8eaee; --shell-ink2:#9aa1ac; --shell-line:#2a2f38;
+  --sans:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  --serif:'Songti SC','STSong','Noto Serif SC',Georgia,serif;
+  --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--shell-bg);color:var(--shell-ink);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;font-weight:700;line-height:1.3}
+p{margin:0}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:30px 18px 80px}
+.mast h1{font-size:clamp(22px,3.4vw,32px)}
+.mast .sub{color:var(--shell-ink2);font-size:14px;margin-top:8px;max-width:70ch}
+.mast .note{font-size:12px;color:var(--shell-ink2);margin-top:10px;border-left:3px solid #3b82f6;padding-left:10px;line-height:1.6}
+
+/* 方案区块 */
+.dirs{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:22px;margin-top:30px;align-items:start}
+.dir{background:#1b1e24;border:1px solid var(--shell-line);border-radius:18px;overflow:hidden}
+.dir-head{padding:18px 18px 14px}
+.dir-head .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.1em;padding:3px 9px;border-radius:6px;margin-bottom:10px}
+.dir-head h2{font-size:20px}
+.dir-head .pos{color:var(--shell-ink2);font-size:13px;margin-top:5px;line-height:1.6}
+.chips{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.chip{width:26px;height:26px;border-radius:8px;border:1px solid rgba(255,255,255,.18)}
+.dir-why{font-size:12.5px;color:var(--shell-ink2);line-height:1.65;margin-top:12px;border-top:1px dashed var(--shell-line);padding-top:11px}
+.dir-why b{color:var(--shell-ink)}
+
+/* 手机框 + 三屏切换 */
+.stage{padding:6px 18px 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.scr-tabs{display:flex;gap:6px;background:#242832;border-radius:10px;padding:3px}
+.scr-tabs button{font-size:12.5px;font-weight:600;color:var(--shell-ink2);padding:6px 14px;border-radius:8px;transition:.15s}
+.scr-tabs button.on{background:#3b82f6;color:#fff}
+.phone{width:340px;max-width:100%;background:#08090b;border-radius:38px;padding:10px;box-shadow:0 18px 50px rgba(0,0,0,.5);position:relative}
+.phone::before{content:"";position:absolute;top:20px;left:50%;transform:translateX(-50%);width:86px;height:22px;background:#08090b;border-radius:12px;z-index:5}
+.screen{border-radius:30px;overflow:hidden;height:660px;position:relative;font-family:var(--sans)}
+.scr{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;padding-top:44px}
+.scr.on{display:block}
+.scr::-webkit-scrollbar{display:none}
+
+/* 底部对比小结 */
+.verdict{margin-top:34px;background:#1b1e24;border:1px solid var(--shell-line);border-radius:18px;padding:20px}
+.verdict h3{font-size:17px}
+.verdict table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.verdict th,.verdict td{border:1px solid var(--shell-line);padding:8px 10px;text-align:left;color:var(--shell-ink2);line-height:1.5}
+.verdict th{color:var(--shell-ink);background:#242832;white-space:nowrap}
+.verdict td b{color:var(--shell-ink)}
+.foot{font-size:11.5px;color:var(--shell-ink2);margin-top:26px;text-align:center;line-height:1.7}
+
+/* __DIR_STYLES__ */
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <h1>「生活方式自检」UI 三方案 · 请选一个</h1>
+    <p class="sub">同一产品、三种气质。每台手机可切「欢迎 / 报告 / 打卡」三个关键屏——选中方向后，2.0 将按该方向重塑整个 H5（含从业者端）。</p>
+    <p class="note">出品：Claude 设计团队 4 概念 + Codex 2 概念 → 评审团 6 选 3 → 高保真还原。功能与合规文案三案完全一致，只比气质。</p>
+  </div>
+
+  <div class="dirs" id="dirs">
+    <!-- ============ 方案 A · 一纸家书 ============ -->
+    <style>
+    #dir-letter{--lbg:#f4ead8;--lcard:#fffdf6;--link:#3d3128;--link2:#6b5d4d;--lgreen:#175b48;--lred:#a03d22;
+      --lgood:#256b46;--lwarn:#8f5a00;--lorange:#b3541e;--lline:#d8c9ae}
+    #dir-letter .scr{background:var(--lbg);color:var(--link);font-size:15px;line-height:1.8}
+    #dir-letter .l-pad{padding:14px 16px 26px}
+    #dir-letter .l-card{background:var(--lcard);border-radius:6px;box-shadow:0 2px 10px rgba(61,49,40,.12);
+      border-top:2px solid var(--lred);padding:18px 16px;position:relative}
+    #dir-letter .l-serif{font-family:'Songti SC','STSong',serif}
+    #dir-letter .l-kai{font-family:'Kaiti SC','STKaiti',cursive;color:var(--link2)}
+    #dir-letter .l-stamp{position:absolute;top:12px;right:12px;width:64px;height:78px;padding:5px;
+      background:radial-gradient(circle,var(--lbg) 2.2px,transparent 2.6px) 0 0/10px 10px,var(--lcard);
+      box-shadow:0 1px 4px rgba(61,49,40,.18);transform:rotate(2deg)}
+    #dir-letter .l-stamp .face{width:100%;height:100%;background:#e7efe9;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:2px}
+    #dir-letter .l-stamp .house{width:26px;height:20px;background:var(--lgreen);
+      clip-path:polygon(50% 0,100% 42%,84% 42%,84% 100%,16% 100%,16% 42%,0 42%)}
+    #dir-letter .l-stamp .face small{font-size:9px;color:var(--lgreen);font-weight:700;letter-spacing:.1em}
+    #dir-letter .l-postmark{position:absolute;top:52px;right:44px;width:62px;height:62px;border:2px solid rgba(160,61,34,.75);
+      border-radius:50%;display:grid;place-items:center;transform:rotate(-8deg);color:var(--lred);
+      font-size:13px;font-weight:700;letter-spacing:.15em;background:rgba(255,253,246,.4)}
+    #dir-letter .l-postmark i{font-style:normal;border-top:1px solid rgba(160,61,34,.6);border-bottom:1px solid rgba(160,61,34,.6);padding:2px 4px}
+    #dir-letter .l-h1{font-size:27px;font-weight:900;letter-spacing:.05em;line-height:1.35;margin-top:44px}
+    #dir-letter .l-lead{font-size:17px;margin-top:14px}
+    #dir-letter .l-trust{font-size:12.5px;color:var(--link2);text-align:center;margin-top:28px;line-height:1.7}
+    #dir-letter .l-wax{width:104px;height:104px;border-radius:50%;margin:12px auto 4px;display:grid;place-items:center;
+      background:radial-gradient(circle at 34% 30%,#c25a3c,var(--lred) 58%,#7e2f1a);color:#fff7ee;
+      box-shadow:inset 0 -4px 8px rgba(0,0,0,.28),inset 0 3px 6px rgba(255,255,255,.22),0 6px 14px rgba(122,47,26,.35);
+      font-size:15px;font-weight:800;text-align:center;line-height:1.4;letter-spacing:.06em}
+    #dir-letter .l-foot{font-size:11px;color:var(--link2);text-align:center;margin-top:20px;
+      border-top:1px dashed var(--lline);padding-top:10px;line-height:1.6}
+    #dir-letter .l-datemark{display:inline-flex;align-items:center;gap:6px;border:1.5px solid rgba(160,61,34,.65);
+      border-radius:999px;color:var(--lred);font-size:11.5px;font-weight:700;padding:3px 10px;letter-spacing:.08em}
+    #dir-letter .l-grid-paper{margin-top:12px;padding:10px;border:1px solid var(--lline);
+      background:linear-gradient(var(--lcard) 0 0) padding-box,
+        repeating-linear-gradient(0deg,transparent 0 11px,#e8dcc4 11px 12px),
+        repeating-linear-gradient(90deg,transparent 0 11px,#e8dcc4 11px 12px),var(--lcard)}
+    #dir-letter .l-seal-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px dashed var(--lline)}
+    #dir-letter .l-seal{flex:0 0 46px;height:46px;border-radius:50%;border:2px solid;display:grid;place-items:center;
+      font-size:13px;font-weight:800;letter-spacing:.03em;transform:rotate(-4deg);text-align:center;line-height:1.15}
+    #dir-letter .l-seal.g{color:var(--lgood);border-color:var(--lgood);background:rgba(37,107,70,.07)}
+    #dir-letter .l-seal.y{color:var(--lwarn);border-color:var(--lwarn);background:rgba(143,90,0,.07)}
+    #dir-letter .l-seal.o{color:var(--lorange);border-color:var(--lorange);background:rgba(179,84,30,.08)}
+    #dir-letter .l-seal-row .t b{font-size:14.5px}
+    #dir-letter .l-seal-row .t p{font-size:15px;margin-top:2px;text-indent:2em}
+    #dir-letter .l-sign{text-align:right;margin-top:16px}
+    #dir-letter .l-sign .name{font-family:'Kaiti SC','STKaiti',cursive;font-size:19px;color:var(--link)}
+    #dir-letter .l-disc{background:#efe4cf;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--link2);margin-top:14px;line-height:1.6}
+    #dir-letter .l-album{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:12px}
+    #dir-letter .l-tick{aspect-ratio:.86;position:relative}
+    #dir-letter .l-tick .empty{position:absolute;inset:0;border:1px dashed var(--lline);border-radius:2px;
+      display:grid;place-items:center;font-size:9px;color:#b3a789}
+    #dir-letter .l-tick .got{position:absolute;inset:0;padding:3px;
+      background:radial-gradient(circle,var(--lcard) 1.7px,transparent 2px) 0 0/7px 7px,#fffdf6;
+      box-shadow:0 1px 3px rgba(61,49,40,.2)}
+    #dir-letter .l-tick .got .face{width:100%;height:100%;background:#e7efe9;display:grid;place-items:center;
+      font-size:10px;font-weight:800;color:var(--lgreen)}
+    #dir-letter .l-tick:nth-child(2n) .got{transform:rotate(1.6deg)}
+    #dir-letter .l-tick:nth-child(3n) .got{transform:rotate(-1.4deg)}
+    #dir-letter .l-tick .today{position:absolute;inset:0;border:2px solid var(--lred);border-radius:3px;
+      display:grid;place-items:center;font-size:9.5px;font-weight:800;color:var(--lred);animation:lbr 2s ease-in-out infinite}
+    @keyframes lbr{50%{box-shadow:0 0 0 4px rgba(160,61,34,.14)}}
+    #dir-letter .l-route{margin-top:14px;font-size:12px;color:var(--link2);display:flex;align-items:center;gap:6px}
+    #dir-letter .l-route .path{flex:1;border-top:2px dashed #c9b892;position:relative;height:0}
+    #dir-letter .l-route .path i{position:absolute;top:-5px;left:26%;width:9px;height:9px;border-radius:50%;background:var(--lgreen)}
+    #dir-letter .l-quote{margin-top:14px;padding:14px 15px;background:var(--lcard);border-radius:6px;
+      border-top:2px solid var(--lred);box-shadow:0 2px 10px rgba(61,49,40,.12)}
+    #dir-letter .l-quote .k{font-size:10.5px;letter-spacing:.18em;color:var(--link2);font-weight:700}
+    #dir-letter .l-quote p{font-family:'Kaiti SC','STKaiti',cursive;font-size:18px;margin-top:6px;color:var(--link)}
+    #dir-letter .l-priv{margin-top:14px;background:#fbf6ea;border:1px solid var(--lline);border-radius:6px;padding:13px 14px}
+    #dir-letter .l-priv .lk{font-size:13.5px;font-weight:800;display:flex;gap:6px;align-items:center}
+    #dir-letter .l-priv p{font-size:12px;color:var(--link2);margin-top:5px;line-height:1.65}
+    #dir-letter .l-priv .line{margin-top:9px;border-bottom:1.5px solid var(--lline);height:26px;
+      font-family:'Kaiti SC','STKaiti',cursive;color:#b3a789;font-size:14px}
+    #dir-letter .l-invite{margin-top:14px;text-align:center}
+    #dir-letter .l-invite .stk{display:inline-block;padding:10px 18px;background:#e7efe9;border:5px solid #fff;
+      box-shadow:0 3px 10px rgba(61,49,40,.22);transform:rotate(-3deg);font-weight:800;color:var(--lgreen);font-size:14.5px}
+    #dir-letter .l-invite p{font-size:11.5px;color:var(--link2);margin-top:9px}
+    </style>
+    <section class="dir" id="dir-letter">
+      <div class="dir-head">
+        <span class="tag" style="background:#A03D22;color:#fff">方案 A · Claude 主笔</span>
+        <h2>一纸家书</h2>
+        <p class="pos">把 5 分钟自检到 21 天陪伴，做成一封由你的健康陪伴员亲笔写来、可以集邮珍藏的家书——不是软件，是信。</p>
+        <div class="chips">
+          <span class="chip" style="background:#f4ead8"></span><span class="chip" style="background:#fffdf6"></span>
+          <span class="chip" style="background:#3d3128"></span><span class="chip" style="background:#175b48"></span>
+          <span class="chip" style="background:#a03d22"></span><span class="chip" style="background:#256b46"></span>
+          <span class="chip" style="background:#8f5a00"></span><span class="chip" style="background:#b3541e"></span>
+        </div>
+        <p class="dir-why"><b>评审推荐理由：</b>三位评审给它信任与受众双高分——「拆一封写给我的信」是全场对『怕被卖东西』最正面的回答，从业者亲笔落款天然内嵌拓客闭环，邮票集邮是 35-65 岁的时代记忆而非幼稚积分。品牌人格若是『贴心的老朋友』，选它。</p>
+      </div>
+      <div class="stage">
+        <div class="scr-tabs"><button class="on">欢迎</button><button>报告</button><button>打卡</button></div>
+        <div class="phone"><div class="screen" style="background:#f4ead8">
+
+          <div class="scr on"><div class="l-pad">
+            <div class="l-card" style="min-height:520px">
+              <div class="l-stamp"><div class="face"><div class="house"></div><small>21天</small></div></div>
+              <div class="l-postmark"><i>亲 启</i></div>
+              <h3 class="l-serif l-h1">张姐，<br>这封信写给你</h3>
+              <p class="l-kai l-lead">花 5 分钟，看看最近的<br>生活过得怎么样。</p>
+              <p class="l-trust">约 5 分钟 · 结果只有你自己能看到 · 不推荐任何产品</p>
+              <div class="l-wax">拆开<br>这封信</div>
+              <p class="l-foot">寄自 你的习惯陪伴员 王老师 · 2026 年 7 月</p>
+            </div>
+          </div></div>
+
+          <div class="scr"><div class="l-pad">
+            <div class="l-card">
+              <span class="l-datemark">✉ 2026.07.11 为你写下</span>
+              <h3 class="l-serif" style="font-size:21px;font-weight:900;margin-top:12px">给你的生活方式画像</h3>
+              <div class="l-grid-paper">
+                <svg viewBox="0 0 260 236" width="100%" role="img" aria-label="六维雷达">
+                  <polygon points="130,24 206.2,68 206.2,156 130,200 53.8,156 53.8,68" fill="none" stroke="#d8c9ae" stroke-width="1"/>
+                  <polygon points="130,53.9 180.3,83 180.3,141 130,170.1 79.7,141 79.7,83" fill="none" stroke="#d8c9ae" stroke-width="1"/>
+                  <polygon points="130,83 155.2,97.5 155.2,126.5 130,141 104.9,126.5 104.9,97.5" fill="none" stroke="#d8c9ae" stroke-width="1"/>
+                  <polygon points="130,92.4 163.9,92.4 197.8,151.1 130,160.9 113.1,121.8 87.7,87.6" fill="rgba(23,91,72,.14)" stroke="#175b48" stroke-width="2" stroke-linejoin="round"/>
+                  <circle cx="130" cy="92.4" r="4" fill="#a03d22"/>
+                  <text x="130" y="14" text-anchor="middle" font-size="11" fill="#6b5d4d">饮水</text>
+                  <text x="222" y="64" text-anchor="middle" font-size="11" fill="#6b5d4d">作息</text>
+                  <text x="222" y="168" text-anchor="middle" font-size="11" fill="#6b5d4d">饮食</text>
+                  <text x="130" y="218" text-anchor="middle" font-size="11" fill="#6b5d4d">活动</text>
+                  <text x="38" y="168" text-anchor="middle" font-size="11" fill="#6b5d4d">阳光</text>
+                  <text x="38" y="64" text-anchor="middle" font-size="11" fill="#6b5d4d">放松</text>
+                </svg>
+              </div>
+              <div style="margin-top:8px">
+                <div class="l-seal-row"><div class="l-seal o">需调整</div>
+                  <div class="t"><b>饮水 · 2/9</b><p class="l-kai">水这件事，最近被你放在心上的时候少了。</p></div></div>
+                <div class="l-seal-row"><div class="l-seal y">留 意</div>
+                  <div class="t"><b>作息 · 4/9</b><p class="l-kai">睡眠这一项，先不急，慢慢来。</p></div></div>
+                <div class="l-seal-row"><div class="l-seal g">好</div>
+                  <div class="t"><b>饮食 · 8/9</b><p class="l-kai">三餐吃得稳当，这是你的底气。</p></div></div>
+                <div class="l-seal-row" style="border-bottom:none"><div class="l-seal o">需调整</div>
+                  <div class="t"><b>阳光 · 2/9</b><p class="l-kai">白天，记得替自己晒一会儿太阳。</p></div></div>
+              </div>
+              <div class="l-sign">
+                <p class="name">—— 王老师</p>
+                <p class="l-kai" style="font-size:13px">下一封信，21 天后见。</p>
+              </div>
+              <div class="l-disc">本画像是生活方式自我观察，不构成医疗诊断或治疗建议；如有不适请咨询专业医生。</div>
+            </div>
+          </div></div>
+
+          <div class="scr"><div class="l-pad">
+            <div class="l-card">
+              <p class="l-serif" style="font-size:19px;font-weight:900">我的集邮册 <span style="font-size:12px;color:#6b5d4d;font-weight:400">· 第 6 天 / 21</span></p>
+              <div class="l-album">
+                <div class="l-tick"><div class="got"><div class="face">D1</div></div></div>
+                <div class="l-tick"><div class="got"><div class="face">D2</div></div></div>
+                <div class="l-tick"><div class="got"><div class="face">D3</div></div></div>
+                <div class="l-tick"><div class="got"><div class="face">D4</div></div></div>
+                <div class="l-tick"><div class="got"><div class="face">D5</div></div></div>
+                <div class="l-tick"><div class="today">今天</div></div>
+                <div class="l-tick"><div class="empty">D7</div></div>
+                <div class="l-tick"><div class="empty">D8</div></div><div class="l-tick"><div class="empty">D9</div></div>
+                <div class="l-tick"><div class="empty">D10</div></div><div class="l-tick"><div class="empty">D11</div></div>
+                <div class="l-tick"><div class="empty">D12</div></div><div class="l-tick"><div class="empty">D13</div></div>
+                <div class="l-tick"><div class="empty">D14</div></div><div class="l-tick"><div class="empty">D15</div></div>
+                <div class="l-tick"><div class="empty">D16</div></div><div class="l-tick"><div class="empty">D17</div></div>
+                <div class="l-tick"><div class="empty">D18</div></div><div class="l-tick"><div class="empty">D19</div></div>
+                <div class="l-tick"><div class="empty">D20</div></div><div class="l-tick"><div class="empty">D21</div></div>
+              </div>
+              <div class="l-route">🏤<span class="path"><i></i></span>🗼<span style="font-size:11px">邮差走到第 6 站</span></div>
+            </div>
+            <div class="l-quote">
+              <p class="k">今日信笺 · 07.11</p>
+              <p>「小事做成了，大事才敢信你。」</p>
+            </div>
+            <div class="l-priv">
+              <p class="lk">🔒 只写给自己的一行</p>
+              <p>这一栏永远不会寄出——任何人（包括你的陪伴员）都看不到。</p>
+              <div class="line">今天喝完水，下午没那么困……</div>
+            </div>
+            <div class="l-invite">
+              <span class="stk">✉ 寄一封信给家里人</span>
+              <p>分享只带打卡记录，不带画像与感受。</p>
+            </div>
+          </div></div>
+
+        </div></div>
+      </div>
+    </section>
+
+    <!-- ============ 方案 B · 素瓷·晴序（Codex 主笔） ============ -->
+<style>
+#dir-porcelain {
+  --bg:#f2f5f2;
+  --card:#ffffff;
+  --ink:#22332c;
+  --ink2:#5c6b64;
+  --primary:#256b5d;
+  --accent:#2e5e73;
+  --good:#2f7d5d;
+  --warn:#b5483a;
+  --orange:#9a5713;
+  --hairline:rgba(34,51,44,.08);
+  --wash:#eef4f1;
+  --biscuit:#e8ece8;
+  --skyline:rgba(46,94,115,.18);
+  --serif:'Songti SC','STSong',serif;
+  --sans:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  --glaze-shadow:0 1px 2px rgba(34,51,44,.04),0 10px 28px rgba(34,51,44,.06);
+  --ornament-policy:hero-crackle-and-kiln-seal-only;
+  --texture-policy:none;
+  --hero-crackle:
+    linear-gradient(137deg,transparent 0 42%,rgba(46,94,115,.11) 42.2% 42.5%,transparent 42.7% 100%),
+    linear-gradient(43deg,transparent 0 58%,rgba(46,94,115,.09) 58.2% 58.5%,transparent 58.7% 100%);
+}
+
+#dir-porcelain,
+#dir-porcelain * {
+  box-sizing:border-box;
+}
+
+#dir-porcelain .dir-head h2 {
+  color:#f5f7f6;
+  font-family:var(--serif);
+  font-weight:600;
+  letter-spacing:.05em;
+}
+
+#dir-porcelain .dir-head .pos {
+  max-width:54ch;
+}
+
+#dir-porcelain .dir-head .chip {
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+#dir-porcelain .scr-tabs button.on {
+  background:var(--primary);
+}
+
+#dir-porcelain .scr-tabs button:focus-visible,
+#dir-porcelain .main-button:focus-visible,
+#dir-porcelain .ghost-button:focus-visible,
+#dir-porcelain .private-input:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+#dir-porcelain .screen {
+  background:var(--bg);
+}
+
+#dir-porcelain .scr {
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.75;
+  scrollbar-width:none;
+}
+
+#dir-porcelain .scr button,
+#dir-porcelain .scr input {
+  font-family:var(--sans);
+}
+
+#dir-porcelain .porcelain-card {
+  background:var(--card);
+  border:1px solid var(--hairline);
+  border-radius:16px;
+  box-shadow:var(--glaze-shadow);
+}
+
+#dir-porcelain .main-button {
+  align-items:center;
+  background:var(--primary);
+  border:1px solid var(--primary);
+  border-radius:14px;
+  color:#fff;
+  display:flex;
+  font-size:16px;
+  font-weight:700;
+  height:52px;
+  justify-content:center;
+  letter-spacing:.03em;
+  min-width:100%;
+  padding:0 20px;
+  width:100%;
+}
+
+#dir-porcelain .ghost-button {
+  align-items:center;
+  background:transparent;
+  border:1px solid rgba(37,107,93,.34);
+  border-radius:14px;
+  color:var(--primary);
+  display:flex;
+  font-size:15px;
+  font-weight:650;
+  justify-content:center;
+  min-height:48px;
+  padding:0 18px;
+  width:100%;
+}
+
+#dir-porcelain .scr-welcome {
+  display:none;
+  min-height:100%;
+  padding:58px 24px 22px;
+}
+
+#dir-porcelain .scr-welcome.on {
+  display:flex;
+  flex-direction:column;
+}
+
+#dir-porcelain .source-slip {
+  border-left:4px solid var(--primary);
+  min-height:72px;
+  padding:10px 12px 9px 14px;
+}
+
+#dir-porcelain .source-main {
+  color:var(--ink);
+  font-size:16px;
+  font-weight:650;
+  line-height:1.45;
+  margin:0;
+}
+
+#dir-porcelain .source-boundary {
+  color:var(--ink2);
+  font-size:15px;
+  line-height:1.45;
+  margin:4px 0 0;
+}
+
+#dir-porcelain .welcome-hero {
+  margin-top:108px;
+  text-align:center;
+}
+
+#dir-porcelain .welcome-title {
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:29px;
+  font-weight:600;
+  letter-spacing:.05em;
+  line-height:1.42;
+  margin:0 auto;
+  max-width:280px;
+}
+
+#dir-porcelain .title-mark {
+  background:var(--accent);
+  border-radius:2px;
+  display:block;
+  height:2px;
+  margin:13px auto 0;
+  width:42px;
+}
+
+#dir-porcelain .seal-scene {
+  align-items:center;
+  background:var(--hero-crackle);
+  display:flex;
+  height:100px;
+  justify-content:center;
+  margin:17px auto 0;
+  max-width:250px;
+  position:relative;
+}
+
+#dir-porcelain .kiln-seal {
+  align-items:center;
+  background:rgba(242,245,242,.92);
+  border:1px solid var(--primary);
+  border-radius:50%;
+  color:var(--primary);
+  display:flex;
+  flex:0 0 88px;
+  font-family:var(--serif);
+  font-size:36px;
+  font-weight:600;
+  height:88px;
+  justify-content:center;
+  letter-spacing:.02em;
+  position:relative;
+  width:88px;
+}
+
+#dir-porcelain .kiln-seal::before {
+  border:2px solid var(--primary);
+  border-radius:50%;
+  content:"";
+  inset:6px;
+  position:absolute;
+}
+
+#dir-porcelain .welcome-trust {
+  color:var(--ink2);
+  font-size:15px;
+  line-height:1.55;
+  margin:9px -3px 0;
+  text-align:center;
+}
+
+#dir-porcelain .welcome-actions {
+  margin-top:auto;
+  padding-top:16px;
+}
+
+#dir-porcelain .quiz-ticket {
+  background:var(--wash);
+  border:1px solid rgba(46,94,115,.1);
+  border-radius:999px;
+  color:var(--accent);
+  font-size:13px;
+  line-height:1.45;
+  margin:0 auto 10px;
+  padding:5px 11px;
+  text-align:center;
+  width:max-content;
+}
+
+#dir-porcelain .scr-report {
+  display:none;
+  padding:44px 0 28px;
+}
+
+#dir-porcelain .scr-report.on {
+  display:block;
+}
+
+#dir-porcelain .privacy-strip {
+  align-items:center;
+  background:var(--wash);
+  border-bottom:1px solid var(--skyline);
+  color:var(--ink2);
+  display:flex;
+  font-size:13px;
+  height:32px;
+  justify-content:center;
+  letter-spacing:.02em;
+  margin:0 12px;
+  position:sticky;
+  top:44px;
+  z-index:4;
+}
+
+#dir-porcelain .privacy-strip::before {
+  background:var(--primary);
+  border-radius:50%;
+  content:"";
+  height:6px;
+  margin-right:7px;
+  width:6px;
+}
+
+#dir-porcelain .report-page {
+  margin:16px 24px 0;
+  padding:22px 18px 18px;
+}
+
+#dir-porcelain .report-kicker {
+  color:var(--accent);
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.14em;
+  margin:0;
+}
+
+#dir-porcelain .report-title {
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:26px;
+  font-weight:600;
+  letter-spacing:.04em;
+  line-height:1.35;
+  margin:4px 0 0;
+}
+
+#dir-porcelain .report-meta {
+  color:var(--ink2);
+  font-size:13px;
+  line-height:1.5;
+  margin:7px 0 0;
+  font-variant-numeric:tabular-nums;
+}
+
+#dir-porcelain .sky-divider {
+  background:var(--skyline);
+  height:1px;
+  margin:17px 0 14px;
+  width:100%;
+}
+
+#dir-porcelain .radar-figure {
+  margin:0;
+  text-align:center;
+}
+
+#dir-porcelain .radar-figure svg {
+  display:block;
+  height:auto;
+  margin:0 auto;
+  max-width:260px;
+  overflow:visible;
+  width:100%;
+}
+
+#dir-porcelain .radar-grid {
+  fill:none;
+  stroke:rgba(46,94,115,.17);
+  stroke-width:1;
+}
+
+#dir-porcelain .radar-axis {
+  stroke:rgba(46,94,115,.13);
+  stroke-width:1;
+}
+
+#dir-porcelain .radar-data {
+  fill:rgba(37,107,93,.25);
+  stroke:var(--primary);
+  stroke-linejoin:round;
+  stroke-width:2;
+}
+
+#dir-porcelain .radar-dot {
+  fill:var(--primary);
+  stroke:#fff;
+  stroke-width:1.5;
+}
+
+#dir-porcelain .radar-label {
+  fill:var(--ink2);
+  font-family:var(--serif);
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:.04em;
+}
+
+#dir-porcelain .radar-caption {
+  color:var(--ink2);
+  font-size:13px;
+  line-height:1.55;
+  margin:2px 0 0;
+}
+
+#dir-porcelain .summary-title,
+#dir-porcelain .score-title {
+  color:var(--ink);
+  font-size:15px;
+  font-weight:750;
+  letter-spacing:.03em;
+  margin:20px 0 8px;
+}
+
+#dir-porcelain .summary-list {
+  border-bottom:1px solid var(--skyline);
+  border-top:1px solid var(--skyline);
+}
+
+#dir-porcelain .summary-line {
+  padding:11px 0 10px;
+}
+
+#dir-porcelain .summary-line + .summary-line {
+  border-top:1px solid var(--skyline);
+}
+
+#dir-porcelain .summary-head {
+  align-items:center;
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+#dir-porcelain .summary-dim {
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:16px;
+  font-weight:600;
+  letter-spacing:.03em;
+}
+
+#dir-porcelain .status-label {
+  align-items:center;
+  color:var(--ink2);
+  display:inline-flex;
+  font-size:15px;
+  font-weight:650;
+  gap:5px;
+  line-height:1.4;
+}
+
+#dir-porcelain .status-dot {
+  border-radius:50%;
+  display:inline-block;
+  height:10px;
+  width:10px;
+}
+
+#dir-porcelain .status-stable .status-dot {
+  background:var(--good);
+}
+
+#dir-porcelain .status-notice .status-dot {
+  background:var(--orange);
+}
+
+#dir-porcelain .status-priority .status-dot {
+  background:var(--warn);
+}
+
+#dir-porcelain .summary-action {
+  color:var(--ink2);
+  font-size:15px;
+  line-height:1.65;
+  margin:4px 0 0;
+}
+
+#dir-porcelain .score-list {
+  display:grid;
+  gap:16px;
+}
+
+#dir-porcelain .score-strip {
+  align-items:center;
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:16px;
+  box-shadow:var(--glaze-shadow);
+  display:flex;
+  justify-content:space-between;
+  min-height:58px;
+  padding:8px 13px 8px 14px;
+}
+
+#dir-porcelain .score-dim {
+  align-items:center;
+  color:var(--ink);
+  display:flex;
+  font-size:15px;
+  font-weight:650;
+  gap:8px;
+}
+
+#dir-porcelain .axis-icon {
+  filter:saturate(.72);
+  font-size:16px;
+  line-height:1;
+}
+
+#dir-porcelain .score-value {
+  align-items:baseline;
+  display:flex;
+  font-variant-numeric:tabular-nums;
+  gap:2px;
+}
+
+#dir-porcelain .score-value strong {
+  font-size:30px;
+  font-weight:720;
+  letter-spacing:-.03em;
+  line-height:1;
+}
+
+#dir-porcelain .score-value small {
+  color:var(--ink2);
+  font-size:13px;
+  font-weight:600;
+}
+
+#dir-porcelain .score-priority strong {
+  color:var(--warn);
+}
+
+#dir-porcelain .score-notice strong {
+  color:var(--orange);
+}
+
+#dir-porcelain .score-stable strong {
+  color:var(--good);
+}
+
+#dir-porcelain .disclaimer {
+  background:var(--wash);
+  border:1px solid rgba(46,94,115,.1);
+  border-radius:12px;
+  color:var(--ink2);
+  font-size:13px;
+  line-height:1.65;
+  margin:16px 24px 0;
+  padding:12px 14px;
+}
+
+#dir-porcelain .scr-checkin {
+  display:none;
+  padding:58px 24px 34px;
+}
+
+#dir-porcelain .scr-checkin.on {
+  display:block;
+}
+
+#dir-porcelain .checkin-kicker {
+  color:var(--accent);
+  font-size:13px;
+  font-weight:750;
+  letter-spacing:.14em;
+  margin:0;
+  text-transform:uppercase;
+}
+
+#dir-porcelain .checkin-title {
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:27px;
+  font-weight:600;
+  letter-spacing:.05em;
+  line-height:1.35;
+  margin:3px 0 0;
+}
+
+#dir-porcelain .checkin-meta {
+  color:var(--ink2);
+  font-size:15px;
+  line-height:1.5;
+  margin:6px 0 0;
+  font-variant-numeric:tabular-nums;
+}
+
+#dir-porcelain .glaze-grid {
+  display:grid;
+  gap:4px;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  margin-top:18px;
+  width:100%;
+}
+
+#dir-porcelain .glaze-tile {
+  align-items:center;
+  background:var(--biscuit);
+  border:1px solid var(--hairline);
+  border-radius:10px;
+  color:var(--ink2);
+  display:flex;
+  flex-direction:column;
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+  font-weight:700;
+  height:44px;
+  justify-content:center;
+  line-height:1;
+  min-width:0;
+  position:relative;
+}
+
+#dir-porcelain .glaze-tile.done {
+  border-color:rgba(37,107,93,.12);
+  color:#173a31;
+}
+
+#dir-porcelain .glaze-tile.glaze-1 {
+  background:#cfe0da;
+}
+
+#dir-porcelain .glaze-tile.glaze-2 {
+  background:#adccc1;
+}
+
+#dir-porcelain .glaze-tile.glaze-3 {
+  background:#7eaa9a;
+  color:#173a31;
+}
+
+#dir-porcelain .glaze-tile.glaze-4 {
+  background:#406f60;
+  color:#fff;
+}
+
+#dir-porcelain .glaze-tile.glaze-5 {
+  background:#256b5d;
+  color:#fff;
+}
+
+#dir-porcelain .glaze-tile.today {
+  animation:porcelain-today-breathe 2s ease-in-out infinite;
+  border:2px solid var(--accent);
+  color:var(--accent);
+}
+
+#dir-porcelain .tile-state {
+  font-size:9px;
+  font-weight:600;
+  margin-top:4px;
+  opacity:.86;
+}
+
+#dir-porcelain .row-seal {
+  align-items:center;
+  background:var(--biscuit);
+  border:1px solid rgba(37,107,93,.34);
+  border-radius:50%;
+  color:rgba(37,107,93,.58);
+  display:flex;
+  font-family:var(--serif);
+  font-size:8px;
+  height:19px;
+  justify-content:center;
+  line-height:1;
+  position:absolute;
+  right:1px;
+  top:1px;
+  width:19px;
+}
+
+#dir-porcelain .row-seal::before {
+  border:2px solid rgba(37,107,93,.38);
+  border-radius:50%;
+  content:"";
+  inset:3px;
+  position:absolute;
+}
+
+#dir-porcelain .glaze-tile.milestone.done .row-seal {
+  box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--accent);
+}
+
+#dir-porcelain .glaze-tile.milestone.done .row-seal::before {
+  border-color:var(--primary);
+}
+
+#dir-porcelain .progress-note {
+  color:var(--ink2);
+  font-size:15px;
+  line-height:1.55;
+  margin:10px 0 0;
+}
+
+#dir-porcelain .focus-card {
+  margin-top:16px;
+  padding:18px;
+}
+
+#dir-porcelain .focus-label {
+  color:var(--accent);
+  font-size:13px;
+  font-weight:750;
+  letter-spacing:.08em;
+  margin:0;
+}
+
+#dir-porcelain .focus-action {
+  color:var(--ink);
+  font-size:19px;
+  font-weight:720;
+  line-height:1.55;
+  margin:7px 0 0;
+}
+
+#dir-porcelain .focus-time {
+  color:var(--ink2);
+  font-size:15px;
+  margin:5px 0 13px;
+  font-variant-numeric:tabular-nums;
+}
+
+#dir-porcelain .completion-note {
+  color:var(--primary);
+  font-size:15px;
+  line-height:1.55;
+  margin:0;
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
+  text-align:center;
+  transition:max-height .35s ease,opacity .35s ease,margin .35s ease;
+  visibility:hidden;
+}
+
+#dir-porcelain .focus-card.is-complete .completion-note {
+  margin-top:10px;
+  max-height:48px;
+  opacity:1;
+  visibility:visible;
+}
+
+#dir-porcelain .inscription-card {
+  background:var(--wash);
+  border:1px solid rgba(46,94,115,.1);
+  border-radius:14px;
+  margin-top:16px;
+  padding:17px 15px 14px;
+  text-align:center;
+}
+
+#dir-porcelain .inscription-quote {
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17px;
+  font-weight:600;
+  letter-spacing:.03em;
+  line-height:1.7;
+  margin:0;
+}
+
+#dir-porcelain .inscription-sign {
+  color:var(--ink2);
+  font-size:13px;
+  line-height:1.5;
+  margin:5px 0 0;
+}
+
+#dir-porcelain .private-card {
+  background:var(--biscuit);
+  border:1px solid var(--hairline);
+  border-radius:16px;
+  margin-top:16px;
+  padding:16px;
+}
+
+#dir-porcelain .private-heading {
+  align-items:center;
+  display:flex;
+  gap:9px;
+}
+
+#dir-porcelain .private-heading h4 {
+  color:var(--ink);
+  font-size:16px;
+  font-weight:750;
+  line-height:1.5;
+  margin:0;
+}
+
+#dir-porcelain .lock-mark {
+  border:2px solid var(--primary);
+  border-radius:3px;
+  display:block;
+  height:14px;
+  position:relative;
+  width:16px;
+}
+
+#dir-porcelain .lock-mark::before {
+  border:2px solid var(--primary);
+  border-bottom:0;
+  border-radius:8px 8px 0 0;
+  content:"";
+  height:8px;
+  left:2px;
+  position:absolute;
+  top:-9px;
+  width:8px;
+}
+
+#dir-porcelain .private-copy {
+  color:var(--ink2);
+  font-size:13px;
+  line-height:1.6;
+  margin:9px 0 11px;
+}
+
+#dir-porcelain .private-input {
+  background:rgba(255,255,255,.7);
+  border:1px solid rgba(34,51,44,.12);
+  border-radius:10px;
+  color:var(--ink);
+  font-size:15px;
+  height:48px;
+  outline:2px solid transparent;
+  outline-offset:2px;
+  padding:0 13px;
+  width:100%;
+}
+
+#dir-porcelain .private-input::placeholder {
+  color:var(--ink2);
+}
+
+#dir-porcelain .invite-block {
+  margin-top:16px;
+}
+
+#dir-porcelain .share-boundary {
+  color:var(--ink2);
+  font-size:15px;
+  line-height:1.55;
+  margin:8px 3px 0;
+  text-align:center;
+}
+
+@keyframes porcelain-today-breathe {
+  0%,100% { box-shadow:0 0 0 0 rgba(46,94,115,.08); }
+  50% { box-shadow:0 0 0 4px rgba(46,94,115,.16); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  #dir-porcelain .glaze-tile.today {
+    animation:none;
+  }
+
+  #dir-porcelain .completion-note {
+    transition:none;
+  }
+}
+</style>
+<section class="dir" id="dir-porcelain">
+  <div class="dir-head">
+    <span class="tag" style="background:#256B5D;color:#fff">方案 B · Codex 主笔</span>
+    <h2>素瓷·晴序</h2>
+    <p class="pos">把生活方式自检做成一件青白瓷器：干净、克制、经得起细看，像博物馆藏品说明卡而不是医院单据——而且每一条信任承诺都写成看得见、可核对的信息。</p>
+    <div class="chips">
+      <span class="chip" style="background:#f2f5f2" aria-label="素瓷白"></span>
+      <span class="chip" style="background:#ffffff" aria-label="白瓷卡"></span>
+      <span class="chip" style="background:#22332c" aria-label="主墨色"></span>
+      <span class="chip" style="background:#5c6b64" aria-label="次墨色"></span>
+      <span class="chip" style="background:#256b5d" aria-label="青釉"></span>
+      <span class="chip" style="background:#2e5e73" aria-label="天青"></span>
+      <span class="chip" style="background:#2f7d5d" aria-label="青稳"></span>
+      <span class="chip" style="background:#b5483a" aria-label="釉红"></span>
+      <span class="chip" style="background:#9a5713" aria-label="琥珀"></span>
+    </div>
+    <p class="dir-why"><b>评审推荐理由：</b>两位评审给它并列最高分：第一眼戒备心最低（『这里不卖货』不用说出口就成立），报告页截图天然像高端说明卡、从业者最敢发朋友圈，且纯 CSS 成本全场最低、翻车概率最小。融合晴序的可核对信任件后，它的信任从『气质』升级成『看得见的承诺』——这是三个方向里最稳的一手。</p>
+  </div>
+  <div class="stage">
+    <div class="scr-tabs"><button class="on" type="button">欢迎</button><button type="button">报告</button><button type="button">打卡</button></div>
+    <div class="phone"><div class="screen" style="background:#f2f5f2">
+      <div class="scr scr-welcome on">
+        <div class="source-slip porcelain-card">
+          <p class="source-main">王老师邀请你做一次生活方式自检</p>
+          <p class="source-boundary">结果只有你自己能看到 · 可随时退出</p>
+        </div>
+        <div class="welcome-hero">
+          <h3 class="welcome-title">用 5 分钟，看清自己的生活方式</h3>
+          <span class="title-mark" aria-hidden="true"></span>
+          <div class="seal-scene" aria-hidden="true">
+            <span class="kiln-seal">检</span>
+          </div>
+          <p class="welcome-trust">约 5 分钟 · 结果只有你自己能看到 · 不推荐任何产品</p>
+        </div>
+        <div class="welcome-actions">
+          <p class="quiz-ticket">18 题 · 不推送任何商品 · 不诊断</p>
+          <button class="main-button" type="button">开始自检</button>
+        </div>
+      </div>
+
+      <div class="scr scr-report">
+        <div class="privacy-strip">本页仅你自己能看到</div>
+        <article class="report-page porcelain-card">
+          <header class="report-header">
+            <p class="report-kicker">私 人 画 像</p>
+            <h3 class="report-title">你的生活方式画像</h3>
+            <p class="report-meta">张姐 · 生成于 2026-07-11</p>
+          </header>
+          <div class="sky-divider" aria-hidden="true"></div>
+          <figure class="radar-figure">
+            <svg viewBox="0 0 260 236" role="img" aria-label="饮水、作息、饮食、活动、阳光、放松六维雷达图，得分依次为 2、4、8、5、2、5，满分 9">
+              <polygon class="radar-grid" points="130.0,90.7 153.7,104.3 153.7,131.7 130.0,145.3 106.3,131.7 106.3,104.3"></polygon>
+              <polygon class="radar-grid" points="130.0,63.3 177.3,90.7 177.3,145.3 130.0,172.7 82.7,145.3 82.7,90.7"></polygon>
+              <polygon class="radar-grid" points="130.0,36.0 201.0,77.0 201.0,159.0 130.0,200.0 59.0,159.0 59.0,77.0"></polygon>
+              <line class="radar-axis" x1="130" y1="118" x2="130" y2="36"></line>
+              <line class="radar-axis" x1="130" y1="118" x2="201" y2="77"></line>
+              <line class="radar-axis" x1="130" y1="118" x2="201" y2="159"></line>
+              <line class="radar-axis" x1="130" y1="118" x2="130" y2="200"></line>
+              <line class="radar-axis" x1="130" y1="118" x2="59" y2="159"></line>
+              <line class="radar-axis" x1="130" y1="118" x2="59" y2="77"></line>
+              <polygon class="radar-data" data-role="radar-data" data-scores="2,4,8,5,2,5" points="130.0,99.8 161.6,99.8 193.1,154.4 130.0,163.6 114.2,127.1 90.5,95.2"></polygon>
+              <circle class="radar-dot" cx="130.0" cy="99.8" r="4"></circle>
+              <circle class="radar-dot" cx="161.6" cy="99.8" r="4"></circle>
+              <circle class="radar-dot" cx="193.1" cy="154.4" r="4"></circle>
+              <circle class="radar-dot" cx="130.0" cy="163.6" r="4"></circle>
+              <circle class="radar-dot" cx="114.2" cy="127.1" r="4"></circle>
+              <circle class="radar-dot" cx="90.5" cy="95.2" r="4"></circle>
+              <text class="radar-label" x="130" y="22" text-anchor="middle" dominant-baseline="middle">饮水</text>
+              <text class="radar-label" x="213.1" y="70" text-anchor="start" dominant-baseline="middle">作息</text>
+              <text class="radar-label" x="213.1" y="166" text-anchor="start" dominant-baseline="middle">饮食</text>
+              <text class="radar-label" x="130" y="214" text-anchor="middle" dominant-baseline="middle">活动</text>
+              <text class="radar-label" x="46.9" y="166" text-anchor="end" dominant-baseline="middle">阳光</text>
+              <text class="radar-label" x="46.9" y="70" text-anchor="end" dominant-baseline="middle">放松</text>
+            </svg>
+            <figcaption class="radar-caption">六个方向各自成像，不合成总分，也不与任何人比较</figcaption>
+          </figure>
+
+          <h4 class="summary-title">把图读成今天能做的事</h4>
+          <div class="summary-list">
+            <div class="summary-line" data-axis="饮水" data-score="2">
+              <div class="summary-head"><span class="summary-dim">饮水</span><span aria-hidden="true">·</span><span class="status-label status-priority"><span class="status-dot"></span>釉红·优先</span></div>
+              <p class="summary-action">今天多接一杯温水，放在手边</p>
+            </div>
+            <div class="summary-line" data-axis="作息" data-score="4">
+              <div class="summary-head"><span class="summary-dim">作息</span><span aria-hidden="true">·</span><span class="status-label status-notice"><span class="status-dot"></span>琥珀·留意</span></div>
+              <p class="summary-action">今晚试着提前半小时放下手机</p>
+            </div>
+            <div class="summary-line" data-axis="饮食" data-score="8">
+              <div class="summary-head"><span class="summary-dim">饮食</span><span aria-hidden="true">·</span><span class="status-label status-stable"><span class="status-dot"></span>青·稳</span></div>
+              <p class="summary-action">保持每餐有蔬菜的节奏</p>
+            </div>
+            <div class="summary-line" data-axis="活动" data-score="5">
+              <div class="summary-head"><span class="summary-dim">活动</span><span aria-hidden="true">·</span><span class="status-label status-notice"><span class="status-dot"></span>琥珀·留意</span></div>
+              <p class="summary-action">午后走十分钟，让身体舒展开</p>
+            </div>
+            <div class="summary-line" data-axis="阳光" data-score="2">
+              <div class="summary-head"><span class="summary-dim">阳光</span><span aria-hidden="true">·</span><span class="status-label status-priority"><span class="status-dot"></span>釉红·优先</span></div>
+              <p class="summary-action">明天上午去窗边晒十分钟太阳</p>
+            </div>
+            <div class="summary-line" data-axis="放松" data-score="5">
+              <div class="summary-head"><span class="summary-dim">放松</span><span aria-hidden="true">·</span><span class="status-label status-notice"><span class="status-dot"></span>琥珀·留意</span></div>
+              <p class="summary-action">睡前留五分钟慢慢呼吸</p>
+            </div>
+          </div>
+
+          <h4 class="score-title">六维自检刻度</h4>
+          <div class="score-list">
+            <div class="score-strip" data-axis="饮水" data-score="2"><span class="score-dim"><span class="axis-icon" aria-hidden="true">💧</span>饮水</span><span class="score-value score-priority"><strong>2</strong><small>/9</small></span></div>
+            <div class="score-strip" data-axis="作息" data-score="4"><span class="score-dim"><span class="axis-icon" aria-hidden="true">🌙</span>作息</span><span class="score-value score-notice"><strong>4</strong><small>/9</small></span></div>
+            <div class="score-strip" data-axis="饮食" data-score="8"><span class="score-dim"><span class="axis-icon" aria-hidden="true">🍚</span>饮食</span><span class="score-value score-stable"><strong>8</strong><small>/9</small></span></div>
+            <div class="score-strip" data-axis="活动" data-score="5"><span class="score-dim"><span class="axis-icon" aria-hidden="true">🚶</span>活动</span><span class="score-value score-notice"><strong>5</strong><small>/9</small></span></div>
+            <div class="score-strip" data-axis="阳光" data-score="2"><span class="score-dim"><span class="axis-icon" aria-hidden="true">☀️</span>阳光</span><span class="score-value score-priority"><strong>2</strong><small>/9</small></span></div>
+            <div class="score-strip" data-axis="放松" data-score="5"><span class="score-dim"><span class="axis-icon" aria-hidden="true">🍃</span>放松</span><span class="score-value score-notice"><strong>5</strong><small>/9</small></span></div>
+          </div>
+        </article>
+        <p class="disclaimer">本画像是生活方式自我观察，不构成医疗诊断或治疗建议；如有不适请咨询专业医生</p>
+      </div>
+
+      <div class="scr scr-checkin">
+        <header class="checkin-header">
+          <p class="checkin-kicker">Day 6 / 21</p>
+          <h3 class="checkin-title">上釉进度</h3>
+          <p class="checkin-meta">已完成 D1–D5 · 今天待打卡</p>
+        </header>
+
+        <div class="glaze-grid" aria-label="21 天上釉进度，已完成前 5 天，今天是第 6 天">
+          <div class="glaze-tile glaze-1 done" data-day="1" data-state="done">D1<span class="tile-state">已上釉</span></div>
+          <div class="glaze-tile glaze-2 done" data-day="2" data-state="done">D2<span class="tile-state">已上釉</span></div>
+          <div class="glaze-tile glaze-3 done" data-day="3" data-state="done">D3<span class="tile-state">已上釉</span></div>
+          <div class="glaze-tile glaze-4 done" data-day="4" data-state="done">D4<span class="tile-state">已上釉</span></div>
+          <div class="glaze-tile glaze-5 done" data-day="5" data-state="done">D5<span class="tile-state">已上釉</span></div>
+          <div class="glaze-tile today" data-day="6" data-state="today">D6<span class="tile-state">今天</span></div>
+          <div class="glaze-tile milestone" data-day="7" data-state="pending">D7<span class="row-seal" aria-label="连续七天窑印待点亮">七</span></div>
+          <div class="glaze-tile" data-day="8" data-state="pending">D8</div>
+          <div class="glaze-tile" data-day="9" data-state="pending">D9</div>
+          <div class="glaze-tile" data-day="10" data-state="pending">D10</div>
+          <div class="glaze-tile" data-day="11" data-state="pending">D11</div>
+          <div class="glaze-tile" data-day="12" data-state="pending">D12</div>
+          <div class="glaze-tile" data-day="13" data-state="pending">D13</div>
+          <div class="glaze-tile milestone" data-day="14" data-state="pending">D14<span class="row-seal" aria-label="连续十四天窑印待点亮">拾</span></div>
+          <div class="glaze-tile" data-day="15" data-state="pending">D15</div>
+          <div class="glaze-tile" data-day="16" data-state="pending">D16</div>
+          <div class="glaze-tile" data-day="17" data-state="pending">D17</div>
+          <div class="glaze-tile" data-day="18" data-state="pending">D18</div>
+          <div class="glaze-tile" data-day="19" data-state="pending">D19</div>
+          <div class="glaze-tile" data-day="20" data-state="pending">D20</div>
+          <div class="glaze-tile milestone" data-day="21" data-state="pending">D21<span class="row-seal" aria-label="二十一天窑印待点亮">成</span></div>
+        </div>
+        <p class="progress-note">素坯会随每一天的完成逐层上釉；行末窑印在连续完成 7 天后点亮。</p>
+
+        <section class="focus-card porcelain-card">
+          <p class="focus-label">今天先做这一件</p>
+          <p class="focus-action">午饭后，去楼下走 10 分钟</p>
+          <p class="focus-time">预计耗时 10 分钟</p>
+          <button class="main-button" type="button">完成今天打卡</button>
+          <p class="completion-note">今天做到一件，就算往前走</p>
+        </section>
+
+        <aside class="inscription-card">
+          <p class="inscription-quote">“小事做成了，大事才敢信你”</p>
+          <p class="inscription-sign">— 今日题跋</p>
+        </aside>
+
+        <section class="private-card">
+          <div class="private-heading"><span class="lock-mark" aria-hidden="true"></span><h4>素坯手记</h4></div>
+          <p class="private-copy">只有你自己能看到，永远不会出现在任何分享卡和从业者看板里</p>
+          <input class="private-input" type="text" aria-label="写下此刻的感受" placeholder="写下此刻的感受…">
+        </section>
+
+        <div class="invite-block">
+          <button class="ghost-button" type="button">邀请家人一起打卡</button>
+          <p class="share-boundary">分享只带打卡记录，不带画像与感受</p>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+
+    <!-- ============ 方案 C · 松烟泥金 ============ -->
+    <style>
+    #dir-ink{--ibg:#152420;--ipaper:#f5f1e4;--iink:#20302a;--iink2:#57655e;--igreen:#1f5c48;--igold:#c9a15a;
+      --igold2:#b8863b;--igood:#2f7d5d;--ired:#b0413a;--iochre:#a05c1f;--igline:rgba(201,161,90,.6)}
+    #dir-ink .scr{background:var(--ibg);color:var(--ipaper);font-size:15px;line-height:1.8}
+    #dir-ink .i-serif{font-family:'Songti SC','STSong',serif}
+    #dir-ink .i-mist{position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(420px 220px at 78% 18%,rgba(201,161,90,.07),transparent 70%),
+                 radial-gradient(360px 260px at 18% 78%,rgba(95,174,158,.08),transparent 70%)}
+    #dir-ink .i-frame{position:relative;margin:26px 26px 20px;border:1px solid var(--igline);min-height:520px;
+      padding:26px 20px;display:flex;flex-direction:column}
+    #dir-ink .i-frame::after{content:"";position:absolute;inset:5px;border:1px solid rgba(201,161,90,.22);pointer-events:none}
+    #dir-ink .i-vtitle{writing-mode:vertical-rl;font-size:38px;font-weight:900;letter-spacing:.14em;
+      color:var(--ipaper);margin:12px auto 0;font-family:'Songti SC','STSong',serif;line-height:1.35}
+    #dir-ink .i-seal{position:absolute;right:18px;bottom:96px;width:52px;height:52px;background:var(--ired);
+      border-radius:7px;display:grid;place-items:center;color:#f7ede4;font-family:'Songti SC',serif;
+      font-weight:900;font-size:15px;line-height:1.2;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4)}
+    #dir-ink .i-goldbtn{display:block;margin-top:auto;background:linear-gradient(135deg,#d5b06a,var(--igold) 45%,var(--igold2));
+      color:#241a08;text-align:center;font-weight:800;font-size:16px;border-radius:10px;padding:14px;letter-spacing:.05em;
+      box-shadow:0 6px 16px rgba(0,0,0,.35)}
+    #dir-ink .i-sub{font-size:13px;color:rgba(245,241,228,.62);text-align:center;margin-top:10px;line-height:1.7}
+    #dir-ink .i-sub2{font-size:11.5px;color:rgba(245,241,228,.45);text-align:center;margin-top:6px}
+    #dir-ink .i-band{background:var(--ibg);padding:12px 18px;position:relative}
+    #dir-ink .i-band::after{content:"";position:absolute;left:18px;right:18px;bottom:0;border-bottom:1px solid var(--igline)}
+    #dir-ink .i-band.btm::after{bottom:auto;top:0}
+    #dir-ink .i-band .bt{font-family:'Songti SC',serif;font-weight:900;letter-spacing:.3em;font-size:13px;color:var(--igold)}
+    #dir-ink .i-scroll{background:var(--ipaper);color:var(--iink);padding:16px 18px 22px}
+    #dir-ink .i-privline{font-size:12px;color:rgba(32,48,42,.6);text-align:center;margin-bottom:10px}
+    #dir-ink .i-rtitle{font-family:'Songti SC',serif;font-size:16.5px;font-weight:900;letter-spacing:.04em;text-align:center;white-space:nowrap}
+    #dir-ink .i-chop-row{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--igline)}
+    #dir-ink .i-chop{flex:0 0 44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#f7ede4;
+      font-family:'Songti SC',serif;font-weight:900;font-size:19px;box-shadow:inset 0 -2px 4px rgba(0,0,0,.25)}
+    #dir-ink .i-chop.an{background:var(--igood)}
+    #dir-ink .i-chop.huan{background:var(--iochre)}
+    #dir-ink .i-chop.tiao{background:var(--ired)}
+    #dir-ink .i-chop-row .t b{font-size:14.5px}
+    #dir-ink .i-chop-row .t p{font-size:14.5px;color:var(--iink2);margin-top:2px}
+    #dir-ink .i-chop-row .t .num{font-family:Georgia,'Songti SC',serif;font-size:17px;color:var(--igreen);font-weight:700}
+    #dir-ink .i-final{display:flex;align-items:center;gap:12px;margin-top:16px;justify-content:flex-end}
+    #dir-ink .i-final .stamp2{width:46px;height:46px;border:2.5px solid var(--ired);border-radius:6px;color:var(--ired);
+      display:grid;place-items:center;font-family:'Songti SC',serif;font-weight:900;font-size:12px;transform:rotate(-6deg)}
+    #dir-ink .i-final .nm{font-family:'Songti SC',serif;font-size:15px;color:var(--iink)}
+    #dir-ink .i-cta2{display:block;margin-top:14px;background:linear-gradient(135deg,#d5b06a,var(--igold) 45%,var(--igold2));
+      color:#241a08;text-align:center;font-weight:800;font-size:15px;border-radius:9px;padding:12px}
+    #dir-ink .i-disc{background:#ece5d2;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--iink2);margin-top:13px;line-height:1.6}
+    #dir-ink .i-camp{background:var(--ipaper);color:var(--iink);min-height:660px;position:relative;padding:16px 0 150px}
+    #dir-ink .i-mtn{position:absolute;top:0;left:0;right:0;height:240px;pointer-events:none;
+      background:radial-gradient(340px 200px at 20% -40px,rgba(31,92,72,.16),transparent 70%),
+                 radial-gradient(420px 240px at 85% -70px,rgba(31,92,72,.10),transparent 72%),
+                 radial-gradient(300px 190px at 55% -30px,rgba(87,101,94,.12),transparent 70%)}
+    #dir-ink .i-ctitle{font-family:'Songti SC',serif;font-size:19px;font-weight:900;letter-spacing:.1em;text-align:center;position:relative}
+    #dir-ink .i-csub{font-size:12px;color:var(--iink2);text-align:center;margin-top:3px;position:relative}
+    #dir-ink .i-today{position:sticky;bottom:12px;margin:14px 16px 0;background:var(--ibg);border:1px solid var(--igline);
+      border-radius:12px;padding:14px 16px;color:var(--ipaper);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+    #dir-ink .i-today .q{font-family:'Songti SC',serif;font-size:16.5px;line-height:1.7}
+    #dir-ink .i-cups{display:flex;align-items:baseline;gap:8px;margin-top:9px}
+    #dir-ink .i-cups b{font-family:Georgia,'Songti SC',serif;font-size:30px;color:var(--igold)}
+    #dir-ink .i-cups span{font-size:12.5px;color:rgba(245,241,228,.6)}
+    #dir-ink .i-privfold{margin-top:10px;border-top:1px solid rgba(201,161,90,.35);padding-top:9px}
+    #dir-ink .i-privfold .lk{font-size:12.5px;font-weight:700;color:var(--igold)}
+    #dir-ink .i-privfold p{font-size:11px;color:rgba(245,241,228,.55);margin-top:3px;line-height:1.6}
+    #dir-ink .i-privfold .line{margin-top:7px;border-bottom:1px solid rgba(245,241,228,.25);height:22px;
+      font-size:13px;color:rgba(245,241,228,.4)}
+    #dir-ink .i-inv{font-size:11px;color:rgba(245,241,228,.5);margin-top:9px;text-align:center}
+    </style>
+    <section class="dir" id="dir-ink">
+      <div class="dir-head">
+        <span class="tag" style="background:#C9A15A;color:#241a08">方案 C · Claude 主笔</span>
+        <h2>松烟泥金</h2>
+        <p class="pos">一封来自老师的墨底泥金「养身请柬」——把健康自检做成可以郑重递出去的礼，在满屏白底 H5 里一眼认出。</p>
+        <div class="chips">
+          <span class="chip" style="background:#152420"></span><span class="chip" style="background:#f5f1e4"></span>
+          <span class="chip" style="background:#20302a"></span><span class="chip" style="background:#1f5c48"></span>
+          <span class="chip" style="background:#c9a15a"></span><span class="chip" style="background:#2f7d5d"></span>
+          <span class="chip" style="background:#b0413a"></span><span class="chip" style="background:#a05c1f"></span>
+        </div>
+        <p class="dir-why"><b>评审推荐理由：</b>辨识度和从业者门面感全场第一——墨底泥金像老字号茶礼请柬，「拿得出手」本身就是转介绍的动力。但这是高方差选项：最看重 C 端第一眼卸下戒备选前两个，最看重从业者有面子、品牌一眼记住，选它。</p>
+      </div>
+      <div class="stage">
+        <div class="scr-tabs"><button class="on">欢迎</button><button>报告</button><button>打卡</button></div>
+        <div class="phone"><div class="screen" style="background:#152420">
+
+          <div class="scr on">
+            <div class="i-mist"></div>
+            <div class="i-frame">
+              <h3 class="i-vtitle">生活方式·自检</h3>
+              <div class="i-seal">王老师<br>敬邀</div>
+              <a class="i-goldbtn">开始自检 · 约 5 分钟</a>
+              <p class="i-sub">结果只有你自己能看到 · 不作诊断 · 不推荐任何产品</p>
+              <p class="i-sub2">这是一份免费的生活自观察 · 全程没有价格、没有商品</p>
+            </div>
+          </div>
+
+          <div class="scr">
+            <div class="i-band"><p class="bt">生活方式画像 · 立轴</p></div>
+            <div class="i-scroll">
+              <p class="i-privline">—— 本卷仅你自己可见 ——</p>
+              <h3 class="i-rtitle">张姐 · 二〇二六年七月十一日</h3>
+              <svg viewBox="0 0 260 236" width="100%" style="margin-top:8px" role="img" aria-label="六维雷达">
+                <polygon points="130,24 206.2,68 206.2,156 130,200 53.8,156 53.8,68" fill="none" stroke="rgba(201,161,90,.45)" stroke-width="1"/>
+                <polygon points="130,53.9 180.3,83 180.3,141 130,170.1 79.7,141 79.7,83" fill="none" stroke="rgba(201,161,90,.3)" stroke-width="1"/>
+                <polygon points="130,83 155.2,97.5 155.2,126.5 130,141 104.9,126.5 104.9,97.5" fill="none" stroke="rgba(201,161,90,.3)" stroke-width="1"/>
+                <polygon points="130,92.4 163.9,92.4 197.8,151.1 130,160.9 113.1,121.8 87.7,87.6" fill="rgba(31,92,72,.15)" stroke="#1f5c48" stroke-width="2" stroke-linejoin="round"/>
+                <g fill="#c9a15a"><circle cx="130" cy="92.4" r="3.4"/><circle cx="163.9" cy="92.4" r="3.4"/><circle cx="197.8" cy="151.1" r="3.4"/><circle cx="130" cy="160.9" r="3.4"/><circle cx="113.1" cy="121.8" r="3.4"/><circle cx="87.7" cy="87.6" r="3.4"/></g>
+                <g fill="#57655e" font-size="11" text-anchor="middle"><text x="130" y="14">饮水</text><text x="222" y="64">作息</text><text x="222" y="168">饮食</text><text x="130" y="218">活动</text><text x="38" y="168">阳光</text><text x="38" y="64">放松</text></g>
+              </svg>
+              <div style="margin-top:6px">
+                <div class="i-chop-row"><div class="i-chop tiao">调</div>
+                  <div class="t"><b>饮水</b> <span class="num">2/9</span><p>喝水这件事，最近排得靠后了，先从它练起。</p></div></div>
+                <div class="i-chop-row"><div class="i-chop huan">缓</div>
+                  <div class="t"><b>作息</b> <span class="num">4/9</span><p>睡眠这一项，不急，先把节奏找回来。</p></div></div>
+                <div class="i-chop-row"><div class="i-chop an">安</div>
+                  <div class="t"><b>饮食</b> <span class="num">8/9</span><p>三餐稳当，是你的底气。</p></div></div>
+                <div class="i-chop-row" style="border-bottom:none"><div class="i-chop tiao">调</div>
+                  <div class="t"><b>阳光</b> <span class="num">2/9</span><p>白天给自己留一段晒太阳的时间。</p></div></div>
+              </div>
+              <div class="i-final"><span class="nm">陪伴员 · 王老师</span><div class="stamp2">总评<br>之印</div></div>
+              <a class="i-cta2">请他为我讲解</a>
+              <div class="i-disc">本报告为生活方式自我观察，不构成医疗诊断或治疗建议；如有不适请咨询专业医生。</div>
+            </div>
+            <div class="i-band btm"><p class="bt">廿一日 · 再会</p></div>
+          </div>
+
+          <div class="scr" style="background:#f5f1e4">
+            <div class="i-camp">
+              <div class="i-mtn"></div>
+              <h3 class="i-ctitle">二十一日 · 山行图</h3>
+              <p class="i-csub">已行六日 · 每日一杯水，拾级而上</p>
+              <svg viewBox="0 118 300 208" width="100%" style="position:relative;margin-top:8px" role="img" aria-label="21 天山径">
+                <path d="M45,290 L255,290 Q298,255 255,220 L45,220 Q2,185 45,150 L255,150" fill="none" stroke="#1f5c48" stroke-width="2" stroke-dasharray="1 7" stroke-linecap="round" opacity=".55"/>
+                <g>
+                  <circle cx="45" cy="290" r="8" fill="#c9a15a"/><circle cx="80" cy="290" r="8" fill="#c9a15a"/>
+                  <circle cx="115" cy="290" r="8" fill="#c9a15a"/><circle cx="150" cy="290" r="8" fill="#c9a15a"/>
+                  <circle cx="185" cy="290" r="8" fill="#c9a15a"/>
+                  <circle cx="220" cy="290" r="11" fill="none" stroke="#c9a15a" stroke-width="3"/>
+                  <circle cx="255" cy="290" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="255" cy="220" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/><circle cx="220" cy="220" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="185" cy="220" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/><circle cx="150" cy="220" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="115" cy="220" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/><circle cx="80" cy="220" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="45" cy="220" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="45" cy="150" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/><circle cx="80" cy="150" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="115" cy="150" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/><circle cx="150" cy="150" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="185" cy="150" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/><circle cx="220" cy="150" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                  <circle cx="255" cy="150" r="7" fill="none" stroke="#1f5c48" stroke-width="1.6"/>
+                </g>
+                <text x="45" y="316" text-anchor="middle" font-size="10" fill="#a05c1f" font-weight="700">小暑</text>
+                <text x="220" y="316" text-anchor="middle" font-size="10" fill="#b0413a" font-weight="700">今日</text>
+                <text x="255" y="132" text-anchor="middle" font-size="10" fill="#57655e">大暑 · 结营</text>
+              </svg>
+              <div class="i-today">
+                <p class="q">「小事做成了，大事才敢信你。」</p>
+                <div class="i-cups"><b>6<span style="font-size:16px;color:rgba(245,241,228,.55)"> / 8</span></b><span>今日已饮 · 点杯即记</span></div>
+                <div class="i-privfold">
+                  <p class="lk">🔒 夹页私记</p>
+                  <p>此栏只有你自己能看到——不入印谱、不入分享，你的老师也看不到。</p>
+                  <div class="line">午后没那么困了……</div>
+                </div>
+                <p class="i-inv">寄请柬给家人 · 分享只带打卡记录，不带画像与感受</p>
+              </div>
+            </div>
+          </div>
+
+        </div></div>
+      </div>
+    </section>
+    <!-- __DIR_SECTIONS__ -->
+  </div>
+
+  <div class="verdict" id="verdict">
+    <h3>评审团对比小结</h3>
+    <div style="overflow-x:auto"><table>
+      <tr><th>方向</th><th>气质</th><th>最适合的顾客群</th><th>从业者门面感</th><th>风险</th></tr>
+      <tr><td><b>A · 一纸家书</b></td><td>温暖私密——一封亲笔写来的信，人情味最浓</td><td>45-65 岁重人情的老学员（对邮票/家书有时代记忆）</td><td>温情文创式体面，顾客愿意把信转给家人＝替从业者寄出下一封</td><td>纸品隐喻过载会滑向手账杂货铺（已定死每屏≤2种）；安卓楷体回落削手写温度</td></tr>
+      <tr><td><b>B · 素瓷·晴序</b></td><td>清爽克制——博物馆藏品说明卡＋每条信任承诺可核对</td><td>35-55 岁怕套路、要专业感的理性顾客；三案中受众最宽</td><td>报告页截图即门面，最敢直接发朋友圈；实现风险全场最低</td><td>绿＋白是健康赛道最拥挤车道，窑印/开片/釉点细节没撑住就退化成普通绿色 App（已写进 CSS 变量强约束）</td></tr>
+      <tr><td><b>C · 松烟泥金</b></td><td>贵气东方——墨底泥金请柬，全场唯一深色</td><td>50+ 讲究体面、认老字号的顾客；及最需要门面的从业者本人</td><td>全场第一：白底 H5 海里一眼认出，像高端茶礼</td><td>高方差：贵重感可能反向触发「要收钱」戒备（首屏已加免费声明）；深底强光可读性需真机验证</td></tr>
+    </table></div>
+    <p style="font-size:13px;color:var(--shell-ink2);margin-top:12px"><b style="color:var(--shell-ink)">评审团一句话建议</b>：求稳选 <b style="color:#5dbf9c">B 素瓷·晴序</b>（分数并列第一、风险最低、受众最宽），打感情牌选 <b style="color:#e08b6d">A 一纸家书</b>，打品牌辨识度选 <b style="color:#c9a15a">C 松烟泥金</b>。</p>
+  </div>
+
+  <p class="foot">本页为静态高保真视觉稿（非功能 demo）· 功能版 1.0 见 ../index.html · 2026-07-11 · Claude × Codex UI 团队</p>
+</div>
+
+<script>
+/* 三屏切换（壳统一处理，方案模块零脚本） */
+document.querySelectorAll('.dir').forEach(dir=>{
+  const tabs=dir.querySelectorAll('.scr-tabs button');
+  const scrs=dir.querySelectorAll('.scr');
+  tabs.forEach((b,i)=>b.addEventListener('click',()=>{
+    tabs.forEach((x,j)=>x.classList.toggle('on',j===i));
+    scrs.forEach((s,j)=>s.classList.toggle('on',j===i));
+  }));
+});
+</script>
+</body>
+</html>
