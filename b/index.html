@@ -67,6 +67,14 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .gray-card{background:var(--bpanel2);border:1px dashed var(--bline);border-radius:11px;padding:11px 13px;margin-top:9px;
   color:var(--bink3);font-size:12.5px;display:flex;gap:8px;align-items:center}
 .gray-card .gtag{font-size:9.5px;background:#374151;color:#9ca3af;padding:2px 6px;border-radius:5px;font-weight:700;flex:0 0 auto}
+.svgic{stroke:var(--bink2);stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;flex:0 0 auto}
+.svgic .f{fill:rgba(99,194,171,.15);stroke:none}
+.svgic .fg{fill:var(--brand2);stroke:none}
+.svgic.g{stroke:var(--brand2)}
+.svgic.bad{stroke:var(--bbad)}
+.svgic.warn{stroke:var(--bwarn)}
+.svgic.dim{stroke:var(--bink3)}
+.blocked-b .svgic,.pass-b .svgic,.redline-edu .svgic{vertical-align:-3px;margin-right:3px}
 .attack-card{border:1px solid var(--bline);border-radius:13px;background:var(--bpanel);padding:14px;margin-top:11px}
 .attack-card h4{font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .attack-card .sc{font-size:12px;color:var(--bink2);margin-top:5px;line-height:1.55}
@@ -186,6 +194,24 @@ function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show'
 function openModal(html){$('#modal-box').innerHTML=html;$('#modal-root').classList.add('show');}
 function closeModal(){$('#modal-root').classList.remove('show');}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ==================== 青釉·柔线 图标库（深色端） ==================== */
+const ICON_P={
+ water:'<path class="f" d="M12 3.2C12 3.2 6.2 10.5 6.2 15.2A5.8 5.8 0 0 0 17.8 15.2C17.8 10.5 12 3.2 12 3.2Z"/><path d="M12 3.2C12 3.2 6.2 10.5 6.2 15.2A5.8 5.8 0 0 0 17.8 15.2C17.8 10.5 12 3.2 12 3.2Z"/>',
+ sleep:'<path class="f" d="M14.4 4.2A8 8 0 1 0 19.6 15.4A6.4 6.4 0 0 1 14.4 4.2Z"/><path d="M14.4 4.2A8 8 0 1 0 19.6 15.4A6.4 6.4 0 0 1 14.4 4.2Z"/>',
+ sun:'<circle class="f" cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="4.2"/><path d="M12 3.6V5.6M12 18.4V20.4M4.6 12H6.6M17.4 12H19.4M6.7 6.7L8.1 8.1M15.9 15.9L17.3 17.3M17.3 6.7L15.9 8.1M8.1 15.9L6.7 17.3"/>',
+ camp:'<path class="f" d="M12 4.5L20 18H4Z"/><path d="M12 4.5L20 18H4Z"/><path class="fg" d="M12 8.5L15 18H9Z"/><path d="M3 18H21"/>',
+ board:'<rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M8 16V12M12 16V9M16 16V13" stroke-width="2"/><path class="fg" d="M12 9V16" stroke-width="0" fill="none"/>',
+ material:'<rect x="7.5" y="4.5" width="10.5" height="11" rx="1.5"/><rect class="f" x="6" y="8" width="10.5" height="11" rx="1.5"/><rect x="6" y="8" width="10.5" height="11" rx="1.5"/><path d="M8.5 12H14M8.5 15H12.5"/>',
+ guard:'<path class="f" d="M12 3.5L19 6V12C19 16.5 15.5 19.5 12 20.8C8.5 19.5 5 16.5 5 12V6Z"/><path d="M12 3.5L19 6V12C19 16.5 15.5 19.5 12 20.8C8.5 19.5 5 16.5 5 12V6Z"/><path class="fg" d="M9 11.8L11.2 14L15 9.8" stroke="none"/>',
+ lock:'<rect class="f" x="6" y="11" width="12" height="9" rx="3"/><rect x="6" y="11" width="12" height="9" rx="3"/><path d="M8.6 11V9A3.4 3.4 0 0 1 15.4 9V11"/><circle class="fg" cx="12" cy="14.6" r="1.1"/>',
+ ban:'<circle cx="12" cy="12" r="8"/><path d="M6.5 6.5L17.5 17.5"/>',
+ x:'<path d="M7 7L17 17M17 7L7 17"/>',
+ bookmark:'<path class="f" d="M7 4H17V20L12 16L7 20Z"/><path d="M7 4H17V20L12 16L7 20Z"/>',
+ flask:'<path class="f" d="M10 4V9L5.6 17A1.5 1.5 0 0 0 7 19.2H17A1.5 1.5 0 0 0 18.4 17L14 9V4Z"/><path d="M10 4V9L5.6 17A1.5 1.5 0 0 0 7 19.2H17A1.5 1.5 0 0 0 18.4 17L14 9V4Z"/><path d="M9 4H15M8.4 13.5H15.6"/>',
+ warn:'<path d="M12 4.5L20.5 19H3.5Z"/><path d="M12 10V14"/><circle class="fg" cx="12" cy="16.4" r="0.9"/>'
+};
+function ICN(n,cls,sz){sz=sz||24;return '<svg class="svgic '+(cls||'')+'" width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24">'+(ICON_P[n]||'')+'</svg>';}
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function cAppUrl(){ return new URL('../c/',location.href).href; }
 
@@ -224,14 +250,14 @@ function renderCamps(){
     <div class="b-card">
       <h3>建一个新营 <span class="bpill info">内容全部现成 · 你零内容工作</span></h3>
       <div class="zone" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        ${Object.entries(THEMES).map(([k,t])=>`<button class="bbtn ${k==='water'?'':'sec'}" onclick="createCamp('${k}')">${t.emoji} ${t.name}${t.full?'':'（内容试运行）'}</button>`).join('')}
+        ${Object.entries(THEMES).map(([k,t])=>`<button class="bbtn ${k==='water'?'':'sec'}" onclick="createCamp('${k}')"><span style="display:inline-flex;vertical-align:-5px;margin-right:4px">${ICN(k,k==='water'?'':'g',18)}</span>${t.name}${t.full?'':'（内容试运行）'}</button>`).join('')}
       </div>
       <p class="mock-wm">营名固定为「21 天 X 营」模板——落在习惯上，起不了「治病味儿」的名字。</p>
     </div>
     ${S.camps.length?S.camps.map(c=>`
     <div class="camp-row ${c.id===S.activeCamp?'cur':''}">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <b>${THEMES[c.theme].emoji} ${esc(c.name)}</b>
+        <b><span style="display:inline-flex;vertical-align:-4px;margin-right:4px">${ICN(c.theme,'g',18)}</span>${esc(c.name)}</b>
         <span class="bpill mock num">${esc(c.id)}</span>
         <span class="bpill mock num">建于 ${esc(c.createdAt)}</span>
         <span style="margin-left:auto"></span>
@@ -248,7 +274,7 @@ function renderCamps(){
       <h3>招募话术（照发 · 禁语已标红）</h3>
       <div class="script-card">${esc(recruitScript())}</div>
       <div class="redline-edu">
-        <span>❌ 不说能治什么</span><span>❌ 不说名额有限</span><span>❌ 不说拉人有好处</span><span>❌ 不放价格</span>
+        <span>${ICN('x','bad',15)}不说能治什么</span><span>${ICN('x','bad',15)}不说名额有限</span><span>${ICN('x','bad',15)}不说拉人有好处</span><span>${ICN('x','bad',15)}不放价格</span>
       </div>
     </div>
     ${footNote()}`;
@@ -291,7 +317,7 @@ function decodeAuthCode(raw){
 function importCode(){
   const raw=$('#codein').value;
   const res=decodeAuthCode(raw);
-  if(!res.ok){ track('import_reject',{reason:res.reason}); $('#importmsg').innerHTML=`<div class="blocked-b">🚫 ${esc(res.reason)}</div>`; return; }
+  if(!res.ok){ track('import_reject',{reason:res.reason}); $('#importmsg').innerHTML=`<div class="blocked-b">${ICN('ban','bad',15)}${esc(res.reason)}</div>`; return; }
   const d=res.data;
   let camp=S.camps.find(c=>c.id===d.campId);
   if(!camp){
@@ -310,7 +336,7 @@ function importCode(){
   }
   let stu=S.students.find(x=>x.campId===d.campId&&x.mid===d.mid);
   if(stu){
-    if(stu.updatedAt>d.updatedAt){ track('import_reject',{reason:'stale'}); $('#importmsg').innerHTML=`<div class="blocked-b">🚫 这枚码（${esc(d.updatedAt)}）比已有记录（${esc(stu.updatedAt)}）旧，已拒收。</div>`; return; }
+    if(stu.updatedAt>d.updatedAt){ track('import_reject',{reason:'stale'}); $('#importmsg').innerHTML=`<div class="blocked-b">${ICN('ban','bad',15)}这枚码（${esc(d.updatedAt)}）比已有记录（${esc(stu.updatedAt)}）旧，已拒收。</div>`; return; }
     stu.days=d.days; stu.streak=d.streak; stu.updatedAt=d.updatedAt; stu.importedAt=todayStr(); stu.nick=nick;
   }else{
     stu={id:newId('s'),campId:d.campId,mid:d.mid,nick,days:d.days,streak:d.streak,updatedAt:d.updatedAt,importedAt:todayStr(),optin:false,rejectedUntil:0};
@@ -329,11 +355,11 @@ function renderBoard(){
   const app=$('#app'); const camp=activeCampObj(); const stus=campStudents();
   const avg=stus.length?(stus.reduce((a,s)=>a+s.days.length,0)/stus.length).toFixed(1):'0';
   const d3=stus.filter(s=>s.days.length>=3).length, d7=stus.filter(s=>s.days.length>=7).length, fin=stus.filter(s=>s.days.length>=21).length;
-  const lockHtml=S.riskLock?`<div class="blocked-b">🔒 触达模块已自动关闭（${esc(S.riskLockBy)}超阈值）。不可改名继续运行。</div>`:'';
+  const lockHtml=S.riskLock?`<div class="blocked-b">${ICN('lock','bad',15)}触达模块已自动关闭（${esc(S.riskLockBy)}超阈值）。不可改名继续运行。</div>`:'';
   app.innerHTML=`
     <h2 style="font-size:19px;margin-top:8px">看板 ${camp?`· ${esc(camp.name)} <span class="bpill mock num">${esc(camp.id)}</span>`:''}</h2>
     <div class="b-card" style="border-color:#2f5147">
-      <h3>🧷 三不必背卡</h3>
+      <h3>${ICN('bookmark','g',18)} 三不必背卡</h3>
       <p class="desc"><b style="color:var(--bink)">不诊断 · 不解释分数 · 不推荐检查治疗。</b>顾客问健康问题 → 「这得问医生，咱营里只管把小习惯做成。」</p>
     </div>
     ${camp?`
@@ -362,8 +388,8 @@ function renderBoard(){
       <table class="evt" style="margin-top:12px">
         <tr><th>字段</th><th>你能看到吗</th></tr>
         <tr><td>打卡日期 / 天数 / 连续</td><td style="color:#86efac">✓ 学员主动发码给你才有</td></tr>
-        <tr><td>自检分数 / 雷达 / 信号灯</td><td style="color:var(--bink3)">🔒 记录码结构里不存在该字段</td></tr>
-        <tr><td>感受记录（体感）</td><td style="color:var(--bink3)">🔒 记录码结构里不存在该字段，且永不可授权</td></tr>
+        <tr><td>自检分数 / 雷达 / 信号灯</td><td style="color:var(--bink3)">${ICN('lock','dim',14)} 记录码结构里不存在该字段</td></tr>
+        <tr><td>感受记录（体感）</td><td style="color:var(--bink3)">${ICN('lock','dim',14)} 记录码结构里不存在该字段，且永不可授权</td></tr>
       </table>
       <p class="desc" style="margin-top:10px">她的分数和感受你从头到尾看不到、也用不上——这正是你敢大声演示的原因。</p>`}
     </div>
@@ -394,14 +420,14 @@ function renderBoard(){
         const v=S.risk[k]??0;
         return `<div class="dial-row"><div class="lab"><span>${lab}（阈值 ${th}%）</span><b class="num ${v>th?'over':''}">${v}%</b></div>
         <input type="range" min="0" max="60" value="${v}" oninput="riskSet('${k}',this.value)"></div>`;}).join('')}
-      ${S.riskLock?`<div class="blocked-b">🔒 触达模块已自动关闭（${esc(S.riskLockBy)}超阈值）。不可改名继续运行。</div>`:`<p class="mock-wm">任一指标超阈值 → 掉队关怀与服务提醒按钮整体锁死（工程锁，不是自觉）。</p>`}
+      ${S.riskLock?`<div class="blocked-b">${ICN('lock','bad',15)}触达模块已自动关闭（${esc(S.riskLockBy)}超阈值）。不可改名继续运行。</div>`:`<p class="mock-wm">任一指标超阈值 → 掉队关怀与服务提醒按钮整体锁死（工程锁，不是自觉）。</p>`}
     </div>
     <div class="b-card">
       <h3>群里有人说「喝了血压降了」怎么办</h3>
       <div class="script-card">${COLD_SCRIPT}</div>
       <p class="desc">统一冷处理：不点赞、不追问、不转发。</p>
     </div>
-    <details class="fold"><summary>🧪 pilot 埋点（事件字典 · CSV 导出）</summary><div class="fbody">
+    <details class="fold"><summary>${ICN('flask','g',16)} pilot 埋点（事件字典 · CSV 导出）</summary><div class="fbody">
       <button class="bbtn sm" style="margin-top:8px" onclick="exportCSV()">导出事件流水 CSV（带 BOM）</button>
       <span class="mono" style="font-size:11px;color:var(--bink3);margin-left:8px">当前 ${S.events.length} 条</span>
       <table class="evt"><tr><th>事件</th><th>说明</th></tr>
@@ -542,7 +568,7 @@ function bridgePreview(){
 const GP={};
 function gpill(k){ if(GP[k]===true)return '<span class="bpill ok">已拦截 ✓</span>'; if(GP[k]===false)return '<span class="bpill bad">围栏失效!</span>'; return ''; }
 function guardPass(k,html){ GP[k]=true; GP['msg_'+k]=html; render(); }
-function guardFail(k,html){ GP[k]=false; GP['msg_'+k]=`<div class="blocked-b" style="border-color:#f59e0b;color:#fcd34d">⚠️ 围栏失效：${html}——工程红线被破坏，须修复！</div>`; render(); }
+function guardFail(k,html){ GP[k]=false; GP['msg_'+k]=`<div class="blocked-b" style="border-color:#f59e0b;color:#fcd34d">${ICN('warn','warn',15)} 围栏失效：${html}——工程红线被破坏，须修复！</div>`; render(); }
 function guardPassCount(){ return ['g1','g2','g3','g4'].filter(k=>GP[k]===true).length; }
 function renderGuard(){
   const n=guardPassCount();
@@ -591,7 +617,7 @@ function renderGuard(){
 function atk1(){
   const v=$('#atk1').value||'';
   if(NAMING_BLOCKLIST.some(w=>v.includes(w))||/对症|调理|治|症/.test(v))
-    guardPass('g1',`<div class="blocked-b">🚫 营名被拦截：命中命名禁词。请落在「习惯」上，比如「21 天喝水营」。</div>`);
+    guardPass('g1',`<div class="blocked-b">${ICN('ban','bad',15)}营名被拦截：命中命名禁词。请落在「习惯」上，比如「21 天喝水营」。</div>`);
   else $('#atk1r').innerHTML=`<div class="pass-b">这个名字没问题。试试「一键填入」再提交。</div>`;
 }
 function atk2(){
@@ -599,11 +625,11 @@ function atk2(){
   const code='XSJ1.'+btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   const res=decodeAuthCode(code);
   if(res.ok) guardFail('g2','解析器接受了带 score/feel 的超集码');
-  else guardPass('g2',`<div class="blocked-b">🚫 ${esc(res.reason)}<br>白名单：<span class="mono">${CODE_KEYS.join(' / ')}</span>——多一个键，整码拒收。</div>`);
+  else guardPass('g2',`<div class="blocked-b">${ICN('ban','bad',15)}${esc(res.reason)}<br>白名单：<span class="mono">${CODE_KEYS.join(' / ')}</span>——多一个键，整码拒收。</div>`);
 }
 function atk3(){
   const v=$('#atk3').value||'';
-  if(THERAPY_RE.test(v)) guardPass('g3',`<div class="blocked-b">🚫 ${COLD_SCRIPT}<br>这句话不会进入任何对外物料。</div>`);
+  if(THERAPY_RE.test(v)) guardPass('g3',`<div class="blocked-b">${ICN('ban','bad',15)}${COLD_SCRIPT}<br>这句话不会进入任何对外物料。</div>`);
   else $('#atk3r').innerHTML=`<div class="pass-b">这句没有疗效词。试试「一键填入」。</div>`;
 }
 function atk4(){
@@ -612,15 +638,15 @@ function atk4(){
   const keys=[...u.searchParams.keys()];
   const bad=keys.filter(k=>!['campId','inviteToken'].includes(k));
   if(bad.length) guardFail('g4','链接里出现了 '+bad.join('、'));
-  else guardPass('g4',`<div class="blocked-b">🚫 真实链接参数：<span class="mono">${esc(keys.join('、'))}</span>——没有 pid / shareUserId / refSalesId 的容身处。</div>`);
+  else guardPass('g4',`<div class="blocked-b">${ICN('ban','bad',15)}真实链接参数：<span class="mono">${esc(keys.join('、'))}</span>——没有 pid / shareUserId / refSalesId 的容身处。</div>`);
 }
 
 /* ============ 渲染 ============ */
 function footNote(){ return `<p class="foot-note">本工具只做生活习惯记录与陪伴，不是健康评估、诊断或疗效承诺。身体不适请就医。</p>`; }
 function render(){
   const bar=$('#tabbar');
-  bar.innerHTML=[['camps','🏕️','营'],['board','📊','看板'],['mat','🎁','物料'],['guard','🛡️','围栏']]
-    .map(([k,ic,lab])=>`<button class="${S.btab===k?'on':''}" onclick="S.btab='${k}';save();render()"><span class="ic">${ic}</span>${lab}</button>`).join('');
+  bar.innerHTML=[['camps','camp','营'],['board','board','看板'],['mat','material','物料'],['guard','guard','围栏']]
+    .map(([k,ik,lab])=>`<button class="${S.btab===k?'on':''}" onclick="S.btab='${k}';save();render()">${ICN(ik,S.btab===k?'g':'dim',22)}${lab}</button>`).join('');
   ({camps:renderCamps,board:renderBoard,mat:renderMat,guard:renderGuard})[S.btab]();
   scheduleScan();
 }

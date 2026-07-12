@@ -23,7 +23,9 @@ h1 em::after{content:"";position:absolute;left:-1px;right:-1px;bottom:2px;height
 a.card{display:block;background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:20px 18px;
   text-decoration:none;color:var(--ink);box-shadow:0 1px 2px rgba(34,51,44,.04),0 10px 28px rgba(34,51,44,.06);transition:transform .12s}
 a.card:hover{transform:translateY(-2px)}
-a.card .ic{font-size:28px}
+a.card .ic svg{display:block}
+a.card .ic svg{stroke:var(--green);stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+a.card .ic .f{fill:rgba(37,107,93,.13);stroke:none}
 a.card h2{font-size:17px;margin:8px 0 4px;font-weight:700}
 a.card p{font-size:12.5px;color:var(--ink2);margin:0;line-height:1.6}
 a.card .go{display:inline-block;margin-top:12px;font-size:13px;font-weight:700;color:var(--green-d)}
@@ -37,19 +39,19 @@ a.card.primary{border:1.5px solid var(--green)}
   <p class="sub">自检 → 私密画像 → 21 天习惯营。记录只存在你自己手机里，不评判、不诊断、不卖东西。</p>
   <div class="grid">
     <a class="card primary" href="c/">
-      <span class="ic">🌿</span>
+      <span class="ic"><svg width="30" height="30" viewBox="0 0 24 24"><path class="f" d="M12 3.8C17 7 18 14 12 20.2C6 14 7 7 12 3.8Z"/><path d="M12 3.8C17 7 18 14 12 20.2C6 14 7 7 12 3.8Z"/><path d="M12 5.6V18.4"/></svg></span>
       <h2>我是顾客 · 开始自检</h2>
       <p>18 道小题看清生活节奏，自选一个 21 天免费习惯营，每天 5 秒打卡。结果只有你自己能看到。</p>
       <span class="go">进入 →</span>
     </a>
     <a class="card" href="b/">
-      <span class="ic">🧑‍💼</span>
+      <span class="ic"><svg width="30" height="30" viewBox="0 0 24 24"><circle class="f" cx="12" cy="8.5" r="3.4"/><circle cx="12" cy="8.5" r="3.4"/><path d="M5.5 19A6.5 6.5 0 0 1 18.5 19"/></svg></span>
       <h2>我是习惯陪伴员 · 工作台</h2>
       <p>建营、发链接、导入学员发来的行为记录码、看板与物料。学员的分数与感受，你永远看不到。</p>
       <span class="go">进入 →</span>
     </a>
     <a class="card" href="demo/">
-      <span class="ic">🎛️</span>
+      <span class="ic"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 8H20M4 16H20"/><circle class="f" cx="9" cy="8" r="2.4"/><circle cx="9" cy="8" r="2.4"/><circle class="f" cx="15" cy="16" r="2.4"/><circle cx="15" cy="16" r="2.4"/></svg></span>
       <h2>组合演示（给同行看）</h2>
       <p>双视角 + 时间拨盘的沙盘演示版：一台手机走完顾客 21 天全旅程与从业者看板、围栏对抗测试。</p>
       <span class="go">进入 →</span>
