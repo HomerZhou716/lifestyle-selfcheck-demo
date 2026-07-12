@@ -119,9 +119,11 @@ body[data-role="b"] #honest{background:#101720;color:#8fa0b3;border-bottom:1px s
 .hero-title em{font-style:normal;color:var(--green-d);position:relative}
 .hero-title em::after{content:"";position:absolute;left:-1px;right:-1px;bottom:2px;height:9px;background:var(--green-wash);z-index:-1;border-radius:3px}
 .hero-sub{color:var(--ink2);font-size:14.5px;margin-top:10px;line-height:1.65}
-.trust-row{display:flex;flex-direction:column;gap:9px;margin-top:16px}
-.trust-item{display:flex;gap:10px;align-items:center;font-size:13.5px;color:var(--ink2);font-weight:600}
-.trust-item .ic{font-size:17px}
+.hero-title.big{font-size:clamp(30px,9vw,42px);line-height:1.2;margin-top:6px;text-align:center;letter-spacing:.01em}
+.entry-kicker{text-align:center;font-size:12.5px;color:var(--ink3);font-weight:700;letter-spacing:.05em;margin-top:6px}
+.trust-line{text-align:center;font-size:12px;color:var(--ink3);margin-top:16px;line-height:1.6}
+.trust-line .svgic{vertical-align:-2px;margin-right:1px}
+.lead{font-family:var(--serif);font-size:clamp(21px,5.6vw,27px);font-weight:600;line-height:1.32;margin-top:16px}
 
 /* 问卷 */
 .rainbow{display:flex;gap:4px;margin-top:16px}
@@ -521,7 +523,7 @@ const DEFAULT_STATE={
   draft:null,          /* 入营流程草稿 */
   priv:{feel:{},witness:{}},   /* 私有：feel 按日期、witness 按营；永不进入分享卡/行为记录码渲染路径 */
   auth:{behavior:false,log:[]},
-  complaintsList:[], events:[], inviteOpens:0,
+  complaintsList:[], events:[], inviteOpens:0, leftRevoke:[],
 };
 /* 深合并：旧版本 localStorage 结构缺字段时逐层补默认值，不整块覆盖 */
 function deepMerge(def,sav){
@@ -572,6 +574,7 @@ function load(){
   if(!st.priv||typeof st.priv!=='object') st.priv={feel:{},witness:{}};
   if(typeof st.priv.witness!=='object'||st.priv.witness===null) st.priv.witness={};
   if(typeof st.priv.feel!=='object'||st.priv.feel===null) st.priv.feel={};
+  st.leftRevoke=(Array.isArray(st.leftRevoke)?st.leftRevoke:[]).filter(t=>typeof t==='string');
   return st;
 }
 function save(){ try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){} }
@@ -698,9 +701,32 @@ async function srvRevoke(c){
   try{ const r=await apiPost('/api/c/optin',{on:false},c.srv.token); if(r&&r.ok){ c.srv.optin=false; c.srv.pendingRevoke=false; c.srv.mustRevoke=false; save(); } }
   catch(e){ c.srv.pendingRevoke=true; save(); }
 }
+/* 退营队列：营已从本地移除，凭证仍需把服务端置为终态"已退营"直到确认。
+   走 /api/c/leave（终态）而非 optin off——一旦服务端置 user_left，任何迟到的开授权都被 410 拒绝，
+   与请求到达顺序无关，营主看板永久不可见（修 in-flight srvFlush 竞态）。 */
+function drainLeftRevoke(){
+  if(!API.on||!Array.isArray(S.leftRevoke)||!S.leftRevoke.length) return;
+  for(const tok of [...S.leftRevoke]){
+    apiPost('/api/c/leave',{},tok).then(r=>{
+      if(r&&(r.ok||r.code===401||r.code===410)){ S.leftRevoke=S.leftRevoke.filter(t=>t!==tok); save(); }
+    }).catch(()=>{});
+  }
+}
+/* 退出这一关：清本地记录 + 云端撤回（可重新开同主题的营，重算 21 天） */
+function quitCamp(i){
+  const c=S.camps[i]; if(!c) return;
+  if(!confirm(`退出「${themeOf(c.theme).name}」？这一关的本地打卡记录会清除；之后可以重新开一关，重新算 21 天。`)) return;
+  if(c.srv&&c.srv.token&&!S.leftRevoke.includes(c.srv.token)) S.leftRevoke.push(c.srv.token);
+  S.camps.splice(i,1);
+  track('camp_leave',{theme:c.theme,campId:c.campId});
+  if(!S.camps.length) S.cstage=S.selfcheck.done?'match':'welcome';
+  save(); drainLeftRevoke();
+  toast('已退出这一关'); render();
+}
 /* 周期对账：断网补传、撤回补达（开关状态是唯一事实源） */
 function srvSyncTick(){
   if(!API.on) return;
+  drainLeftRevoke();
   S.camps.forEach((c,i)=>{
     if(!c.srv||!c.srv.token) return;
     /* 撤回是 fail-safe：本地缓存不可信（optin 应答可能丢失），mustRevoke 直到服务端确认才熄灭 */
@@ -747,6 +773,7 @@ async function doRestore(){
     try{
       const r=await apiGet('/api/c/camp',t);
       if(!r||!r.ok){ skipped++; continue; }
+      if(r.left){ skipped++; continue; }   /* 已退营的营不恢复 */
       if(S.camps.some(c=>c.campId===r.campId&&c.mid===r.mid)){ skipped++; continue; }
       const jd=/^\d{4}-\d{2}-\d{2}$/.test(r.joinDate)?r.joinDate:todayStr();
       const theme=['water','sleep','sun'].includes(r.theme)?r.theme:'water';
@@ -875,40 +902,26 @@ function renderC(){
 /* ---------- S1 欢迎 ---------- */
 function renderWelcome(){
   const resume=S.selfcheck.answers.length>0&&!S.selfcheck.done;
+  const done=S.selfcheck.done;
   VC.innerHTML=`
-    <div class="cred">
-      <b>你的${ROLE_NAME} 邀请你做一次生活方式自检</b>
-      <p>结果只有你自己能看到 · 可随时退出</p>
-    </div>
-    <div class="crackle" style="padding:6px 0 2px">
-      <h1 class="hero-title" style="margin-top:14px">用 5 分钟，看清自己的<em>生活方式</em></h1>
-      <p class="hero-sub">18 道小题，看看自己最近把日子过成了什么节奏。</p>
-      <div class="kilnmark"><span>检</span></div>
-    </div>
-    <div class="trust-row">
-      <div class="trust-item">${ICN('lock','g',22)}结果只有你自己能看到</div>
-      <div class="trust-item">${ICN('timer','g',22)}5 分钟</div>
-      <div class="trust-item">${ICN('shield','g',22)}不评判、不诊断、不卖东西</div>
-    </div>
-    <p class="chip-sign">18 题 · 不推送任何商品 · 不诊断</p>
-    ${resume?`
-    <div class="c-card">
-      <p style="font-size:14px">上次做到第 ${S.selfcheck.answers.length+1} 题，接着来？</p>
-      <button class="cbtn" style="margin-top:12px" onclick="startQuiz()">继续</button>
-      <button class="cbtn ghost" onclick="restartQuiz()">重新开始</button>
-    </div>`:`
-    <button class="cbtn" style="margin-top:24px" onclick="startQuiz()">开始自检</button>`}
-    ${S.selfcheck.done?`<button class="cbtn sec" style="margin-top:10px" onclick="S.cstage='report';save();render()">回看我的私密报告</button>`:''}
-    ${S.camps.length?`<button class="cbtn" style="margin-top:10px" onclick="S.cstage='camp';save();render()">进入我的营 →</button>`:''}
-    ${API.on&&!S.camps.length?`<button class="cbtn ghost" style="margin-top:8px" onclick="restorePrompt()">换手机了？粘贴恢复码</button>`:''}
-    ${footNote()}`;
+    <p class="entry-kicker">你的${ROLE_NAME}邀请你</p>
+    <h1 class="hero-title big">用 5 分钟，<br>看清自己的<em>生活方式</em></h1>
+    <div class="kilnmark"><span>检</span></div>
+    <p class="trust-line">${ICN('lock','g',15)}结果只有你自己能看到 · 5 分钟 · 不诊断、不卖东西</p>
+    ${!done?`
+    <button class="cbtn" style="margin-top:26px" onclick="startQuiz()">${resume?`接着上次做（第 ${S.selfcheck.answers.length+1} 题）`:'开始自检'}</button>
+    ${resume?`<button class="cbtn ghost" onclick="restartQuiz()">重新开始</button>`:''}`:`
+    <button class="cbtn" style="margin-top:26px" onclick="S.cstage='${S.camps.length?'camp':'match'}';save();render()">${S.camps.length?'进入我的营 →':'选一个习惯营 →'}</button>
+    <button class="cbtn sec" style="margin-top:10px" onclick="restartQuiz()">再测一次</button>
+    <button class="cbtn ghost" style="margin-top:6px" onclick="S.cstage='report';save();render()">回看我的报告</button>`}
+    ${API.on&&!S.camps.length&&!resume?`<button class="cbtn ghost" style="margin-top:8px" onclick="restorePrompt()">换手机了？粘贴恢复码</button>`:''}`;
 }
 function startQuiz(){
   if(S.selfcheck.done){ restartQuiz(); return; }   /* 已完成再点 = 重新测，防止重复触发完成事件 */
   if(!S.selfcheck.answers.length)track('selfcheck_start');
   S.cstage='quiz';save();render();
 }
-function restartQuiz(){ S.selfcheck={answers:[],done:false,scores:null}; reportRevealed=false; track('selfcheck_start'); S.cstage='quiz';save();render(); }
+function restartQuiz(){ S.selfcheck={answers:[],done:false,scores:null}; reportRevealed=false; renderReport._seen=false; track('selfcheck_start'); S.cstage='quiz';save();render(); }
 
 /* ---------- S2 问卷 ---------- */
 function dimProgress(){
@@ -929,8 +942,7 @@ function renderQuiz(){
       <div class="q-opts">
         ${q.opts.map((o,i)=>`<button class="q-opt" onclick="answer(${i})">${esc(o[0])}</button>`).join('')}
       </div>
-    </div>
-    ${footNote()}`;
+    </div>`;
 }
 function answer(i){
   const idx=S.selfcheck.answers.length, q=QUESTIONS[idx];
@@ -981,13 +993,13 @@ function renderReport(){
       <div class="light-row"><span class="glaze-dot ${lc}">${lw}</span>
         <div class="t" style="flex:1"><b>${ICN(d.key,'',18)} ${d.name}</b> <span class="num" style="font-size:12px;color:var(--ink3)">${v} / 9</span>
           <p>${esc(lightText(d,v))}</p>
-          <p class="tip">${LIGHT_TIP}</p>
         </div></div>`;}).join('')}
     </div>
     <p class="c-kicker" style="margin-top:20px">顺带看点小知识（对事不对人）</p>
     ${DIMS.map(d=>`<details class="edu-card"><summary>${ICN(d.key,'',16)} ${esc(d.eduT)}</summary><div class="body">${esc(d.edu)}</div></details>`).join('')}
     <div class="disclaim">${DISCLAIM}</div>
     <button class="cbtn" style="margin-top:18px" onclick="S.cstage='match';save();render()">看看适合我的习惯主题 →</button>
+    <button class="cbtn sec" style="margin-top:10px" onclick="restartQuiz()">再测一次</button>
     ${footNote()}`;
   drawRadar($('#radarbox'),sc);
   /* 常驻隐私条：贴在演示控制条正下方，滚到哪都在 */
@@ -1026,7 +1038,7 @@ function renderMatch(){
   const allGreen=DIMS.every(d=>(sc[d.key]??0)>=7);   /* 全绿判定必须覆盖全部六维 */
   const act=activeThemes();
   VC.innerHTML=`
-    <h2 style="font-family:var(--serif);font-size:23px;margin-top:14px">${allGreen?'习惯都挺稳！挑一关，体验『好习惯 × 时间』这道公式。':'按你自己填的关注方向，这几关都适合先练'}</h2>
+    <h2 class="lead">${allGreen?'习惯都挺稳，挑一关体验『好习惯 × 时间』':'挑一个想养成的小习惯，先练 21 天'}</h2>
     ${keys.map(k=>{const t=THEMES[k];const dimGreen=(sc[t.dim]??0)>=7;const on=act.has(k);return `
     <div class="theme-card" ${on?'style="opacity:.6;cursor:default"':`onclick="pickTheme('${k}')"`}>
       <span class="ic">${ICN(k,'g',30)}</span>
@@ -1035,10 +1047,7 @@ function renderMatch(){
         <p class="why">${on?'这一关正在进行——去「今日」接着打卡就好。':((allGreen||dimGreen)?esc(t.play):esc(t.why))}</p>
         <p class="play">${esc(t.play)}</p>
       </div></div>`;}).join('')}
-    <p class="small-note" style="text-align:center;margin-top:14px">这是按你的自评关注方向做的排序，不是身体判断。一关一个习惯，可以同时练几关，选哪个、选几关，你说了算。</p>
-    ${S.camps.length?`<button class="cbtn sec" style="margin-top:10px" onclick="S.cstage='camp';save();render()">返回我的营</button>`:''}
-    <button class="cbtn ghost" style="margin-top:10px" onclick="openShare('selfcheck')">生成「我完成了自检」分享卡（可跳过）</button>
-    ${footNote()}`;
+    ${S.camps.length?`<button class="cbtn sec" style="margin-top:16px" onclick="S.cstage='camp';save();render()">返回我的营</button>`:''}`;
 }
 function pickTheme(k){
   if(activeThemes().has(k)){ toast('这一关正在进行中，去「今日」打卡吧'); return; }
@@ -1376,6 +1385,17 @@ function renderMe(){
     </div>
 
     <div class="c-card">
+      <p class="c-kicker">我的营</p>
+      ${S.camps.map((c,i)=>{const over=campDay(c)>21;const d=Math.min(campDay(c),21);return `
+      <div style="display:flex;align-items:center;gap:9px;padding:11px 0;border-top:1px dashed var(--line)">
+        ${ICN(c.theme,'g',18)}
+        <span style="flex:1;font-size:14px"><b>${themeOf(c.theme).name}</b> · <span class="num" style="color:var(--ink3)">${over?'已结营':`第 ${d}/21 天`}</span></span>
+        <button class="cbtn ghost" style="width:auto;padding:6px 11px;margin:0;font-size:12.5px;color:var(--ink3)" onclick="quitCamp(${i})">退出</button>
+      </div>`;}).join('')}
+      <p class="small-note">退出会清掉这一关的本地记录；同个习惯可以重新开一关，重新算 21 天。</p>
+    </div>
+
+    <div class="c-card">
       <p class="c-kicker">数据授权 · 随时可撤回</p>
       ${authSwitchesHTML()}
       ${S.auth.behavior?`
@@ -1394,13 +1414,7 @@ function renderMe(){
     <div class="c-card">
       <p class="c-kicker">邀请同行</p>
       <button class="cbtn sec" style="margin-top:6px" onclick="openShare('companion')">给在乎的人留同行位</button>
-      <p class="small-note">分享只带打卡记录，不带画像与感受。拉人没有任何好处——纯粹找个伴。</p>
-    </div>
-
-    <div class="c-card">
-      <p class="c-kicker">两次作答对照</p>
-      <p style="font-size:13.5px;color:var(--ink2)">上线前设计中 · 敬请期待</p>
-      <p class="small-note">对照仅供自我记录，受当日状态和填写影响，不代表疾病风险下降、诊断或疗效。</p>
+      <p class="small-note">只带打卡记录，不带画像与感受。</p>
     </div>
 
     ${(anyOver21||anyEnded)?`
