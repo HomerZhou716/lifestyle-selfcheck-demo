@@ -507,7 +507,7 @@ const EVENT_DICT=[
  ['theme_select','选择习惯主题'],['camp_join','加入训练营'],['anchor_set','设定习惯锚点'],
  ['day0_checkin','Day0 预打卡'],['checkin','每日打卡（含标签）'],['feel_saved','保存私有感受（仅计次，内容永不采集）'],
  ['camp_complete','完营'],['share_card_gen','生成公开分享卡（type）'],['invite_open','邀请链接被打开（仅匿名总量，不落关系边，不进看板）'],
- ['auth_grant','开启行为记录授权'],['auth_revoke','撤回授权'],['outreach_log','触达留痕（原因/渠道/话术/是否被拒）'],
+ ['auth_grant','开启行为记录授权'],['auth_revoke','撤回授权'],['camp_leave','退出训练营（终态：撤回+清本地记录）'],['outreach_log','触达留痕（原因/渠道/话术/是否被拒）'],
  ['complaint_submit','投诉/举报提交'],
 ];
 const PREREG_METRICS=['完营率','习惯主题匹配→入营转化率','D3 留存','D7 留存','自检完成率','Day0 预打卡率','断卡后回归率','行为授权开启率','撤回授权率','主动咨询率','私聊同意率','助教每日运营分钟数'];
@@ -704,12 +704,16 @@ async function srvRevoke(c){
 /* 退营队列：营已从本地移除，凭证仍需把服务端置为终态"已退营"直到确认。
    走 /api/c/leave（终态）而非 optin off——一旦服务端置 user_left，任何迟到的开授权都被 410 拒绝，
    与请求到达顺序无关，营主看板永久不可见（修 in-flight srvFlush 竞态）。 */
+const revoking={};
 function drainLeftRevoke(){
   if(!API.on||!Array.isArray(S.leftRevoke)||!S.leftRevoke.length) return;
+  if(S.leftRevoke.length>50) S.leftRevoke=[...new Set(S.leftRevoke)].slice(-50);   /* 去重 + 上限，防无限累积 */
   for(const tok of [...S.leftRevoke]){
+    if(revoking[tok]) continue;                                                    /* single-flight：同一凭证不并发/不悬挂叠加 */
+    revoking[tok]=true;
     apiPost('/api/c/leave',{},tok).then(r=>{
       if(r&&(r.ok||r.code===401||r.code===410)){ S.leftRevoke=S.leftRevoke.filter(t=>t!==tok); save(); }
-    }).catch(()=>{});
+    }).catch(()=>{}).finally(()=>{ delete revoking[tok]; });
   }
 }
 /* 退出这一关：清本地记录 + 云端撤回（可重新开同主题的营，重算 21 天） */
@@ -717,6 +721,7 @@ function quitCamp(i){
   const c=S.camps[i]; if(!c) return;
   if(!confirm(`退出「${themeOf(c.theme).name}」？这一关的本地打卡记录会清除；之后可以重新开一关，重新算 21 天。`)) return;
   if(c.srv&&c.srv.token&&!S.leftRevoke.includes(c.srv.token)) S.leftRevoke.push(c.srv.token);
+  try{ delete S.priv.witness[witnessKey(c)]; }catch(e){}   /* 清本营私有见证，重进同主题不串用旧回顾 */
   S.camps.splice(i,1);
   track('camp_leave',{theme:c.theme,campId:c.campId});
   if(!S.camps.length) S.cstage=S.selfcheck.done?'match':'welcome';
@@ -1441,9 +1446,17 @@ function renderMe(){
     <div class="c-card">
       <p class="c-kicker">帮助与监督</p>
       <button class="cbtn ghost" style="text-align:left;padding-left:0" onclick="complain()"><span style="display:inline-flex;vertical-align:-5px;margin-right:5px">${ICN('bell','',18)}</span>投诉 / 举报（营主或内容有问题，直接告诉平台）</button>
-      <button class="cbtn ghost" style="text-align:left;padding-left:0" onclick="if(confirm('清空本机全部记录？不可恢复。')){localStorage.removeItem(LS_KEY);location.reload();}"><span style="display:inline-flex;vertical-align:-5px;margin-right:5px">${ICN('trash','',18)}</span>清空本机数据</button>
+      <button class="cbtn ghost" style="text-align:left;padding-left:0" onclick="clearAllData()"><span style="display:inline-flex;vertical-align:-5px;margin-right:5px">${ICN('trash','',18)}</span>清空本机数据</button>
     </div>
     ${footNote()}`;
+}
+async function clearAllData(){
+  if(!confirm('清空本机全部记录？不可恢复。')) return;
+  /* 先把未送达的「退营」凭证打到服务端（否则清空后再无凭证，营主永远看得到已退营的你） */
+  if(API.on&&Array.isArray(S.leftRevoke)&&S.leftRevoke.length){
+    try{ await Promise.all(S.leftRevoke.map(t=>apiPost('/api/c/leave',{},t))); }catch(e){}
+  }
+  localStorage.removeItem(LS_KEY); location.reload();
 }
 function saveNick(){
   const v=$('#nickin').value.trim().slice(0,12);
@@ -1576,7 +1589,7 @@ stripUrlParams();
 render();
 apiDetect();
 setInterval(srvSyncTick,25000);
-window.addEventListener('online',srvSyncTick);
+window.addEventListener('online',()=>{ if(!API.on) apiDetect(); else srvSyncTick(); });
 </script>
 </body>
 </html>

@@ -284,9 +284,13 @@ async function srvRefresh(){
           stu.verified=true; stu.noBehavior=true; stu.updatedAt=sv.joinDate;
         }
       });
-      /* 服务端已不可见（撤回/墓碑）的验真学员 → 本地同步下线；手动导入的自报学员保留 */
+      /* retired（退营 user_left / 被删 tombstone）：加本地墓碑挡旧码重导入，并移除对应本机行（含离线自报快照） */
+      const retired=Array.isArray(b.retired)?b.retired:[];
+      retired.forEach(mid=>{ const k=camp.id+'|'+mid; if(!S.tombstones.includes(k)) S.tombstones.push(k); });
       S.students=S.students.filter(st=>{
-        if(st.campId!==camp.id||!st.verified) return true;
+        if(st.campId!==camp.id) return true;
+        if(retired.includes(st.mid)) return false;            /* 服务端已退营/删除 → 本机一律移除 */
+        if(!st.verified) return true;                          /* 纯离线自报学员（服务端不认识）保留 */
         return b.students.some(sv=>sv.mid===st.mid);
       });
     }
@@ -818,6 +822,9 @@ let scanTimer=null;
 function scheduleScan(){ clearTimeout(scanTimer); scanTimer=setTimeout(scanNaming,250); }
 render();
 apiDetect();
+/* 看板定时对账：即使营主盯着不操作，退营/撤回/删除也在 ~20s 内从看板消失（拉模型的静止刷新） */
+setInterval(()=>{ const ac=activeCampObj(); if(S.btab==='board'&&API.on&&S.srvToken&&ac&&ac.srv){ lastBoardFetch[ac.id]=Date.now(); srvRefresh().then(ok=>{ if(ok) render(); }); } },20000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&S.btab==='board'&&API.on&&S.srvToken){ srvRefresh().then(ok=>{ if(ok) render(); }); } });
 </script>
 </body>
 </html>
