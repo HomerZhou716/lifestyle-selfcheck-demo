@@ -124,6 +124,12 @@ details.fold .fbody{padding:0 14px 13px}
 </head>
 <body>
 <div id="honest">习惯陪伴员工作台 · 内测 pilot 版 · 学员数据来自其<b>主动发来的行为记录码</b>，非实时</div>
+<script>/* 顶栏口径随模式切换（apiDetect 后由 render 调用） */
+function honestBar(){ const el=document.getElementById('honest'); if(!el)return;
+  el.innerHTML=(typeof API!=='undefined'&&API.on&&S.srvToken)
+    ?'习惯陪伴员工作台 · 云端版 · 学员数据来自其<b>授权后的自动同步</b>，可随时撤回'
+    :'习惯陪伴员工作台 · 内测 pilot 版 · 学员数据来自其<b>主动发来的行为记录码</b>，非实时'; }
+</script>
 <main id="app"></main>
 <nav id="tabbar"></nav>
 <div id="modal-root"><div class="dim" onclick="closeModal()"></div><div class="box" id="modal-box"></div></div>
@@ -161,6 +167,7 @@ function validatePublicText(v){ return !(THERAPY_RE.test(v||'')||NAMING_BLOCKLIS
 const LS_KEY='lifestyle_b_v1';
 const DEFAULT_STATE={
   btab:'camps', coach:'', activeCamp:null, boardView:'work',
+  srvToken:'', srvUser:'', pendingDel:[],
   camps:[], students:[], outreach:[], tombstones:[],
   risk:{reject:5,quit:5,complain:1,revoke:2}, riskLock:false, riskLockBy:'',
   events:[],
@@ -183,6 +190,7 @@ function load(){
   st.camps=(Array.isArray(st.camps)?st.camps:[]).filter(c=>c&&typeof c==='object'&&typeof c.id==='string');
   st.students=(Array.isArray(st.students)?st.students:[]).filter(x=>x&&typeof x==='object'&&typeof x.campId==='string'&&Array.isArray(x.days));
   st.tombstones=(Array.isArray(st.tombstones)?st.tombstones:[]).filter(t=>typeof t==='string');
+  st.pendingDel=(Array.isArray(st.pendingDel)?st.pendingDel:[]).filter(x=>x&&typeof x.campId==='string'&&typeof x.mid==='string');
   return st;
 }
 function save(){ try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){} }
@@ -215,13 +223,140 @@ function ICN(n,cls,sz){sz=sz||24;return '<svg class="svgic '+(cls||'')+'" width=
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function cAppUrl(){ return new URL('../c/',location.href).href; }
 
+/* ==================== 云端（2.0 · 账号与服务端验真看板） ==================== */
+const API={on:false};
+const SRV={me:null};
+async function apiPost(path,data,useAuth){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',...(useAuth&&S.srvToken?{Authorization:'Bearer '+S.srvToken}:{})},body:JSON.stringify(data)});
+  return r.json();
+}
+async function apiGet(path){ const r=await fetch(path,{headers:S.srvToken?{Authorization:'Bearer '+S.srvToken}:{},cache:'no-store'}); return r.json(); }
+async function apiDel(path){ const r=await fetch(path,{method:'DELETE',headers:S.srvToken?{Authorization:'Bearer '+S.srvToken}:{}}); return r.json(); }
+async function apiDetect(){
+  if(location.protocol==='file:') return;
+  try{ const r=await apiGet('/api/health'); if(r&&r.ok){ API.on=true; if(S.srvToken) await srvRefresh(); render(); } }catch(e){}
+}
+async function srvRefresh(){
+  if(!(API.on&&S.srvToken)) return false;
+  try{
+    /* 0) 未确认的云删除先补投：撤回处理必达，绝不让删除被看板刷新静默撤销 */
+    for(const pd of [...S.pendingDel]){
+      try{
+        const r=await apiDel('/api/b/camps/'+encodeURIComponent(pd.campId)+'/members/'+encodeURIComponent(pd.mid));
+        if(r&&(r.ok||r.error==='没有这位学员')) S.pendingDel=S.pendingDel.filter(x=>!(x.campId===pd.campId&&x.mid===pd.mid));
+      }catch(e){ /* 下轮再投 */ }
+    }
+    const me=await apiGet('/api/b/me');
+    if(!me||!me.ok){ if(me&&me.code===401){ S.srvToken=''; S.srvUser=''; save(); toast('登录已过期，请重新登录'); } return false; }
+    SRV.me=me;
+    if(me.name&&!S.coach) S.coach=me.name;
+    /* 云营并入本地列表（invite token 以服务端为准） */
+    me.camps.forEach(sc=>{
+      let c=S.camps.find(x=>x.id===sc.id);
+      if(!c){ S.camps.push({id:sc.id,theme:sc.theme,name:sc.name,token:sc.inviteToken,createdAt:sc.createdAt,srv:true}); }
+      else { c.srv=true; c.token=sc.inviteToken; c.name=sc.name; }
+    });
+    if(!S.activeCamp&&S.camps.length) S.activeCamp=S.camps[0].id;
+    /* 刷全部云营（不只当前营）：撤回抹除对每个营即时生效，不留滞留数据 */
+    for(const camp of S.camps.filter(c=>c.srv&&me.camps.some(sc=>sc.id===c.id))){
+      const b=await apiGet('/api/b/camps/'+encodeURIComponent(camp.id)+'/board');
+      if(!(b&&b.ok)) continue;
+      b.students.forEach(sv=>{
+        if(S.pendingDel.some(x=>x.campId===camp.id&&x.mid===sv.mid)) return;   /* 删除在途：不物化回来 */
+        if(!sv.optin&&S.tombstones.includes(camp.id+'|'+sv.mid)) return;        /* 本地已墓碑且服务端未确认其重新同意：不复活 */
+        let stu=S.students.find(x=>x.campId===camp.id&&x.mid===sv.mid);
+        if(!stu){ stu={id:newId('s'),campId:camp.id,mid:sv.mid,nick:'',days:[],streak:0,updatedAt:sv.joinDate,importedAt:todayStr(),optin:false,rejectedUntil:0}; S.students.push(stu); }
+        const nk=(sv.nick||'').trim();
+        if(nk&&validatePublicText(nk)) stu.nick=nk; else if(!stu.nick) stu.nick='学员'+sv.mid.slice(0,4);
+        stu.joinDate=sv.joinDate;
+        if(sv.ended){ stu.days=[]; stu.streak=0; stu.srvDays=false; stu.verified=true; stu.noBehavior=true; stu.ended=true; stu.updatedAt=sv.joinDate; }
+        else if(sv.optin){
+          stu.verified=true; stu.noBehavior=false; stu.srvDays=true; stu.ended=false;
+          stu.days=(sv.days||[]).filter(d=>Number.isInteger(d)&&d>=1&&d<=21);
+          stu.streak=Math.max(0,Math.min(21,sv.streak|0));
+          stu.updatedAt=/^\d{4}-\d{2}-\d{2}$/.test(sv.updatedAt||'')?sv.updatedAt:sv.joinDate;
+          S.tombstones=S.tombstones.filter(t=>t!==camp.id+'|'+sv.mid);   /* 服务端已确认其重新同意 */
+        }else if(!stu.srvDays&&stu.days&&stu.days.length){
+          stu.verified=false; stu.noBehavior=false;            /* 手动记录码在：按自报口径显示 */
+        }else{
+          /* 撤回 = 即时抹除：云同步来的行为数据不得在本机留存 */
+          stu.days=[]; stu.streak=0; stu.srvDays=false;
+          stu.verified=true; stu.noBehavior=true; stu.updatedAt=sv.joinDate;
+        }
+      });
+      /* 服务端已不可见（撤回/墓碑）的验真学员 → 本地同步下线；手动导入的自报学员保留 */
+      S.students=S.students.filter(st=>{
+        if(st.campId!==camp.id||!st.verified) return true;
+        return b.students.some(sv=>sv.mid===st.mid);
+      });
+    }
+    save();
+    return true;
+  }catch(e){ return false; }
+}
+function authGateHTML(){
+  if(!API.on) return '';
+  if(S.srvToken) return `<div class="b-card"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span class="bpill ok">营地账号</span><b>${esc(S.srvUser)}</b><span style="margin-left:auto"></span>
+    <button class="bbtn sm sec" onclick="srvRefresh().then(render)">刷新</button>
+    <button class="bbtn sm sec" onclick="srvLogout()">退出</button></div></div>`;
+  return `<div class="b-card" style="border-color:#2f5147">
+    <h3>连接营地服务器（账号）</h3>
+    <p class="desc">登录后建的是真实云营：学员打卡自动进看板（服务端验真），换设备数据不丢。不登录也可用本机演示模式。</p>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <input type="text" id="au" placeholder="登录名（3-20 位小写字母/数字/下划线）" autocomplete="username" style="flex:1;min-width:150px;background:var(--bpanel2);border:1px solid var(--bline);border-radius:9px;padding:9px 11px;color:var(--bink)">
+      <input type="password" id="ap" placeholder="口令（至少 6 位）" autocomplete="current-password" style="flex:1;min-width:130px;background:var(--bpanel2);border:1px solid var(--bline);border-radius:9px;padding:9px 11px;color:var(--bink)">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="bbtn" onclick="srvLogin(false)">登录</button>
+      <button class="bbtn sec" onclick="srvLogin(true)">注册新账号</button>
+    </div>
+    <div id="authmsg"></div>
+  </div>`;
+}
+async function srvLogin(isReg){
+  const username=($('#au').value||'').trim().toLowerCase();
+  const password=$('#ap').value||'';
+  const msg=t=>{ const el=$('#authmsg'); if(el) el.innerHTML=`<div class="blocked-b">${esc(t)}</div>`; };
+  if(!/^[a-z0-9_]{3,20}$/.test(username)) return msg('登录名需 3-20 位小写字母/数字/下划线');
+  if(password.length<6) return msg('口令至少 6 位');
+  try{
+    const r=await apiPost(isReg?'/api/b/register':'/api/b/login',
+      isReg?{username,password,name:(S.coach||'').slice(0,12)}:{username,password});
+    if(!(r&&r.ok)) return msg((r&&r.error)||'失败了，稍后再试');
+    S.srvToken=r.token; S.srvUser=r.username; if(r.name&&!S.coach)S.coach=r.name; save();
+    track(isReg?'srv_register':'srv_login',null);
+    await srvRefresh(); render(); toast(isReg?'账号已建好，现在建云营吧':'欢迎回来');
+  }catch(e){ msg('营地服务联不上'); }
+}
+function srvLogout(){
+  if(!confirm('退出登录？云营的营与学员会从本机清除（数据仍在服务器，重新登录即可恢复）。'))return;
+  const cloudCampIds=new Set(S.camps.filter(c=>c.srv).map(c=>c.id));
+  S.students=S.students.filter(st=>!(cloudCampIds.has(st.campId)&&st.verified));   /* 手动导入的自报学员保留 */
+  S.camps=S.camps.filter(c=>!c.srv);
+  if(!S.camps.some(c=>c.id===S.activeCamp)) S.activeCamp=S.camps[0]?S.camps[0].id:null;
+  S.pendingDel=[]; lastBoardFetch={};
+  S.srvToken=''; S.srvUser=''; SRV.me=null; save(); render();
+}
+
 /* ============ 营 ============ */
 function newId(p){ return p+Math.random().toString(36).slice(2,8); }
-function createCamp(theme){
+async function createCamp(theme){
   const t=THEMES[theme]; if(!t) return;
+  if(API.on&&S.srvToken){
+    try{
+      const r=await apiPost('/api/b/camps',{theme},true);
+      if(r&&r.ok){
+        S.camps.push({id:r.camp.id,theme,name:r.camp.name,token:r.camp.inviteToken,createdAt:r.camp.createdAt,srv:true});
+        S.activeCamp=r.camp.id; save(); track('camp_create',{id:r.camp.id,theme,srv:true});
+        toast('云营已创建，把链接发给你的顾客吧'); render(); return;
+      }
+      toast((r&&r.error)||'创建失败，稍后再试'); return;
+    }catch(e){ toast('营地服务联不上，稍后再试'); return; }
+  }
   const camp={id:newId('camp-'),theme,name:'21 天'+t.name,token:newId('t'),createdAt:todayStr()};
   S.camps.push(camp); S.activeCamp=camp.id; save(); track('camp_create',{id:camp.id,theme});
-  toast('营已创建，把链接发给你的顾客吧'); render();
+  toast('营已创建（本机演示模式），把链接发给你的顾客吧'); render();
 }
 function campLink(c){ return cAppUrl()+'?campId='+encodeURIComponent(c.id)+'&inviteToken='+encodeURIComponent(c.token); }
 function activeCampObj(){ return S.camps.find(c=>c.id===S.activeCamp)||S.camps[0]||null; }
@@ -239,6 +374,7 @@ function renderCamps(){
   window.__recruit=recruitScript();
   app.innerHTML=`
     <h2 style="font-size:19px;margin-top:8px">我的营</h2>
+    ${authGateHTML()}
     <div class="b-card">
       <p class="b-kicker">我的称呼（出现在招募话术落款 · 只存本机）</p>
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -258,6 +394,7 @@ function renderCamps(){
     <div class="camp-row ${c.id===S.activeCamp?'cur':''}">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <b><span style="display:inline-flex;vertical-align:-4px;margin-right:4px">${ICN(c.theme,'g',18)}</span>${esc(c.name)}</b>
+        ${c.srv?'<span class="bpill ok">云营</span>':(API.on?'<span class="bpill mock">本机演示</span>':'')}
         <span class="bpill mock num">${esc(c.id)}</span>
         <span class="bpill mock num">建于 ${esc(c.createdAt)}</span>
         <span style="margin-left:auto"></span>
@@ -357,7 +494,8 @@ function renderBoard(){
   const d3=stus.filter(s=>s.days.length>=3).length, d7=stus.filter(s=>s.days.length>=7).length, fin=stus.filter(s=>s.days.length>=21).length;
   const lockHtml=S.riskLock?`<div class="blocked-b">${ICN('lock','bad',15)}触达模块已自动关闭（${esc(S.riskLockBy)}超阈值）。不可改名继续运行。</div>`:'';
   app.innerHTML=`
-    <h2 style="font-size:19px;margin-top:8px">看板 ${camp?`· ${esc(camp.name)} <span class="bpill mock num">${esc(camp.id)}</span>`:''}</h2>
+    <h2 style="font-size:19px;margin-top:8px">看板 ${camp?`· ${esc(camp.name)} <span class="bpill mock num">${esc(camp.id)}</span>`:''}
+      ${API.on&&S.srvToken&&camp&&camp.srv?`<button class="bbtn sm sec" style="margin-left:8px;vertical-align:2px" onclick="lastBoardFetch[activeCampObj().id]=Date.now();srvRefresh().then(ok=>{render();toast(ok?'云看板已刷新':'刷新失败：网络或登录状态异常')})">刷新云看板</button>`:''}</h2>
     <div class="b-card" style="border-color:#2f5147">
       <h3>${ICN('bookmark','g',18)} 三不必背卡</h3>
       <p class="desc"><b style="color:var(--bink)">不诊断 · 不解释分数 · 不推荐检查治疗。</b>顾客问健康问题 → 「这得问医生，咱营里只管把小习惯做成。」</p>
@@ -365,7 +503,7 @@ function renderBoard(){
     ${camp?`
     <div class="b-card">
       <h3>导入学员的「行为记录码」</h3>
-      <p class="desc">学员在她的 App「我的 → 数据授权」里生成，微信发给你。粘贴到下面即可。多一个不该有的字段，整码拒收。</p>
+      <p class="desc">学员在她的 App「我的 → 数据授权」里生成，微信发给你。粘贴到下面即可。多一个不该有的字段，整码拒收。${camp&&camp.srv?'<br><b>云营的学员开了授权会自动出现在下方</b>——此入口用于离线学员手动补码。':''}</p>
       <div class="field"><textarea id="codein" placeholder="粘贴 XSJ1. 开头的记录码"></textarea></div>
       <button class="bbtn" style="margin-top:10px" onclick="importCode()">导入 / 更新</button>
       <div id="importmsg"></div>
@@ -383,7 +521,7 @@ function renderBoard(){
         <div class="metric"><b class="num">${d7}</b><span>达成 D7</span></div>
         <div class="metric"><b class="num">${fin}</b><span>完营（21 天）</span></div>
       </div>
-      <p class="mock-wm">口径：<b>学员自报快照</b>（本机核对结构与新旧，但无服务端验真——2.x 接后端签发后才可作考核依据）。没有「邀请数 / 同行卡数」指标——字段不存在。</p>
+      <p class="mock-wm">口径：${API.on&&S.srvToken&&camp&&camp.srv?'<b>服务端时间戳验真</b>（学员授权后打卡自动同步）；手动导入的记录码仍为学员自报快照，行内已分别标注':'<b>学员自报快照</b>（本机核对结构与新旧，无服务端验真）'}。没有「邀请数 / 同行卡数」指标——字段不存在。</p>
       `:`
       <table class="evt" style="margin-top:12px">
         <tr><th>字段</th><th>你能看到吗</th></tr>
@@ -398,14 +536,15 @@ function renderBoard(){
       ${stus.length?stus.map(s=>{
         const stale=staleDays(s);
         const lock=s.rejectedUntil>Date.now()?Math.ceil((s.rejectedUntil-Date.now())/86400000):0;
+        const srcPill=s.verified?'<span class="bpill ok">服务端验真</span>':'<span class="bpill mock">自报快照</span>';
         return `
       <div class="stu-row">
         <div class="nm">${esc(s.nick)}</div>
-        <div class="st">打卡 <b class="num">${s.days.length}</b> 天 · 连续 <b class="num">${s.streak}</b> 天 · 截至 ${esc(s.updatedAt)}
-          ${stale>=3?` · <span style="color:var(--bwarn)">${stale} 天没有新记录码</span>`:''}
+        <div class="st">${s.noBehavior?`已入营${s.joinDate?` ${esc(s.joinDate)}`:''} · <span style="color:var(--bink3)">未授权行为可见</span>`:`打卡 <b class="num">${s.days.length}</b> 天 · 连续 <b class="num">${s.streak}</b> 天 · 截至 ${esc(s.updatedAt)}`} ${API.on?srcPill:''}
+          ${!s.noBehavior&&stale>=3?` · <span style="color:var(--bwarn)">${stale} 天没有新记录</span>`:''}
           ${s.optin?' · <span class="bpill ok">已同意服务提醒</span>':(lock>0?` · <span class="bpill bad">已拒绝 · 锁定剩 ${lock} 天</span>`:'')}
         </div>
-        ${stale>=3&&canOutreach(s)?`<button class="bbtn sm sec" onclick="careModal('${esc(s.id)}')">关怀</button>`:''}
+        ${!s.noBehavior&&stale>=3&&canOutreach(s)?`<button class="bbtn sm sec" onclick="careModal('${esc(s.id)}')">关怀</button>`:''}
         ${s.optin?`<button class="bbtn sm" ${S.riskLock?'disabled':''} onclick="outreachModal('${esc(s.id)}','')">记录触达</button>`
           :(lock>0?`<button class="bbtn sm sec" disabled>7 天内不可发起</button>`
           :`<button class="bbtn sm sec" ${S.riskLock?'disabled':''} onclick="optinModal('${esc(s.id)}')">发起提醒授权</button>`)}
@@ -452,6 +591,13 @@ function deleteStudent(id){
   if(!confirm(`删除「${s.nick}」？她的行为记录将移除、称呼在历史留痕中匿名化；再次导入需其重新授权。`))return;
   S.students=S.students.filter(x=>x.id!==id);
   S.tombstones.push(s.campId+'|'+s.mid);                                  /* 墓碑：旧码不可直接复活 */
+  if(s.verified&&API.on&&S.srvToken){
+    S.pendingDel.push({campId:s.campId,mid:s.mid}); save();       /* 必达队列：确认前不物化回看板，刷新时自动补投 */
+    apiDel('/api/b/camps/'+encodeURIComponent(s.campId)+'/members/'+encodeURIComponent(s.mid))
+      .then(r=>{ if(r&&(r.ok||r.error==='没有这位学员')){ S.pendingDel=S.pendingDel.filter(x=>!(x.campId===s.campId&&x.mid===s.mid)); save(); }
+                 else toast('云端删除暂未确认，将自动重试'); })
+      .catch(()=>toast('云端删除暂未确认，将自动重试'));
+  }
   S.outreach.forEach(r=>{ if(r.mid===s.mid) r.who='（已删除学员）'; });     /* 审计匿名化 */
   S.events.forEach(e=>{ if(e.data&&e.data.mid===s.mid&&e.data.who) e.data.who='（已删除学员）'; });
   save(); track('student_delete',{campId:s.campId,mid:s.mid}); toast('已删除并留痕（历史称呼已匿名化）'); render();
@@ -516,7 +662,7 @@ function exportCSV(){
 /* ============ 物料 ============ */
 function renderMat(){
   const stus=campStudents();
-  const todayCnt=stus.filter(s=>s.updatedAt===todayStr()).length;
+  const todayCnt=stus.filter(s=>!s.noBehavior&&s.updatedAt===todayStr()).length;
   $('#app').innerHTML=`
     <h2 style="font-size:19px;margin-top:8px">物料 · 模板固定不可改</h2>
     <div class="b-card">
@@ -545,7 +691,7 @@ function renderMat(){
     </div>
     ${footNote()}`;
   window.showBroadcast=function(){
-    const names=stus.filter(s=>s.updatedAt===todayStr()).slice(0,2).map(s=>'@'+s.nick);
+    const names=stus.filter(s=>!s.noBehavior&&s.updatedAt===todayStr()).slice(0,2).map(s=>'@'+s.nick);
     const line=(names.length?`今天收到 ${names.join('、')} 发来的新记录——这样的伙伴，今天有 ${todayCnt} 位。`:`今天已收到 ${todayCnt} 位伙伴的新记录。坚持的人，都在路上。`)+'\n（'+WATERMARK+'）';
     window.__bcast=line;
     openModal(`<div style="background:linear-gradient(135deg,#173029,#10231d);border:1px solid var(--bline);border-radius:14px;padding:15px 17px;font-size:13.5px;line-height:1.7">
@@ -643,12 +789,18 @@ function atk4(){
 
 /* ============ 渲染 ============ */
 function footNote(){ return `<p class="foot-note">本工具只做生活习惯记录与陪伴，不是健康评估、诊断或疗效承诺。身体不适请就医。</p>`; }
+let lastBoardFetch={};
 function render(){
   const bar=$('#tabbar');
   bar.innerHTML=[['camps','camp','营'],['board','board','看板'],['mat','material','物料'],['guard','guard','围栏']]
     .map(([k,ik,lab])=>`<button class="${S.btab===k?'on':''}" onclick="S.btab='${k}';save();render()">${ICN(ik,S.btab===k?'g':'dim',22)}${lab}</button>`).join('');
   ({camps:renderCamps,board:renderBoard,mat:renderMat,guard:renderGuard})[S.btab]();
+  honestBar();
   scheduleScan();
+  const _ac=activeCampObj();
+  if(S.btab==='board'&&API.on&&S.srvToken&&_ac&&_ac.srv&&Date.now()-(lastBoardFetch[_ac.id]||0)>8000){
+    lastBoardFetch[_ac.id]=Date.now(); srvRefresh().then(()=>render());
+  }
 }
 /* 命名禁词 DOM 扫描（.redline-edu 禁语教育区豁免） */
 function scanNaming(){
@@ -665,6 +817,7 @@ function scanNaming(){
 let scanTimer=null;
 function scheduleScan(){ clearTimeout(scanTimer); scanTimer=setTimeout(scanNaming,250); }
 render();
+apiDetect();
 </script>
 </body>
 </html>

@@ -511,6 +511,7 @@ const EVENT_DICT=[
 const PREREG_METRICS=['完营率','习惯主题匹配→入营转化率','D3 留存','D7 留存','自检完成率','Day0 预打卡率','断卡后回归率','行为授权开启率','撤回授权率','主动咨询率','私聊同意率','助教每日运营分钟数'];
 
 /* ==================== 状态 ==================== */
+const LEGAL_TAGS=['☀️','🍜','😮‍💨','🌙','🌱'];   /* 打卡时刻合法值（含 ZWJ 序列，禁止任何按码元截断） */
 const LS_KEY='lifestyle_c_v1';
 const DEFAULT_STATE={
   ctab:'today', cstage:'welcome', nick:'', lastPerfect:'',
@@ -562,9 +563,10 @@ function load(){
   st.camps=(Array.isArray(st.camps)?st.camps:[]).filter(c=>c&&typeof c==='object'&&typeof c.theme==='string').map(c=>{
     const cks={};
     if(c.checkins&&typeof c.checkins==='object')
-      for(const [k,v] of Object.entries(c.checkins)) if(/^\d+$/.test(k)&&v&&typeof v.tag==='string') cks[k]={tag:v.tag.slice(0,4),makeup:!!v.makeup};
+      for(const [k,v] of Object.entries(c.checkins)) if(/^\d+$/.test(k)&&v&&typeof v.tag==='string') cks[k]={tag:LEGAL_TAGS.includes(v.tag)?v.tag:'🌱',makeup:!!v.makeup};
     c.checkins=cks;
     c.makeupUsed=(c.makeupUsed&&typeof c.makeupUsed==='object')?c.makeupUsed:{};
+    if(c.srv&&(typeof c.srv!=='object'||typeof c.srv.token!=='string')) delete c.srv;
     return c;
   });
   if(!st.priv||typeof st.priv!=='object') st.priv={feel:{},witness:{}};
@@ -638,6 +640,141 @@ const ICON_P={
 };
 function ICN(n,cls,sz){sz=sz||24;return '<svg class="svgic '+(cls||'')+'" width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24">'+(ICON_P[n]||'')+'</svg>';}
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+/* ==================== 云同步（2.0 · 可选，本地优先） ====================
+   总闸 = 行为授权开关：开 → 打卡行为自动同步给对应营主（服务端验真）+ 云端备份；
+   关 → 只存本机、营主端即时不可见。分数/雷达/感受/见证在同步载荷的结构里不存在。 */
+const API={on:false};
+async function apiPost(path,data,token){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(data)});
+  return r.json();
+}
+async function apiGet(path,token){
+  const r=await fetch(path,{headers:token?{Authorization:'Bearer '+token}:{},cache:'no-store'});
+  return r.json();
+}
+async function apiDetect(){
+  if(location.protocol==='file:') return;
+  try{ const r=await apiGet('/api/health'); if(r&&r.ok){ API.on=true; srvSyncTick(); render(); } }catch(e){}
+}
+function localDays(c){ return Object.keys(c.checkins).filter(d=>+d>=1&&+d<=21).length; }
+/* 幂等全量推送：≤21 条，服务端对已存在的日子直接忽略，不覆盖 */
+let flushing={};
+async function srvFlush(i){
+  const c=S.camps[i];
+  if(!API.on||!c||!c.srv||!c.srv.token||!S.auth.behavior) return;
+  if(c.srv.needsReauth||c.srv.ended) return;   /* 被营主删除过 / 营期已结束：不自动动作 */
+  const key=c.campId+'|'+c.mid;
+  if(flushing[key]) return;                     /* single-flight：同营不并发推送，避免竞态与 sentN 回退 */
+  flushing[key]=true;
+  try{
+    if(c.srv.optin!==true){
+      /* reconsent 是一次性手势：请求发出即消费，网络重试不再携带，删除后不会误清新墓碑 */
+      const rec=c.srv.reconsent===true; if(rec) delete c.srv.reconsent;
+      const r0=await apiPost('/api/c/optin',rec?{on:true,reconsent:true}:{on:true},c.srv.token);
+      if(!S.auth.behavior){ save(); return; }   /* await 期间用户已撤回：不再继续，撤回由 tick 补达 */
+      if(r0&&r0.ok){ c.srv.optin=true; }
+      else if(r0&&r0.code===410){ c.srv.optin=false; c.srv.needsReauth=true; c.srv.pending=false; save(); return; }
+      else if(r0&&r0.code===498){ c.srv.ended=true; c.srv.pending=false; save(); return; }
+      else { c.srv.pending=true; save(); return; }
+    }
+    const items=Object.entries(c.checkins).filter(([d])=>+d>=1&&+d<=21)
+      .map(([d,v])=>({day:+d,tag:LEGAL_TAGS.includes(v.tag)?v.tag:'🌱',makeup:!!v.makeup}));
+    if(items.length){
+      const r=await apiPost('/api/c/checkins',{items},c.srv.token);
+      if(!S.auth.behavior){ save(); return; }   /* await 期间撤回：不认为已同步，交给 revoke */
+      if(!(r&&r.ok)){
+        if(r&&r.code===403){ c.srv.optin=false; c.srv.needsReauth=true; c.srv.pending=false; save(); return; }
+        if(r&&r.code===498){ c.srv.ended=true; c.srv.pending=false; save(); return; }
+        c.srv.pending=true; save(); return;
+      }
+    }
+    c.srv.pending=false; c.srv.sentN=items.length; c.srv.synced=new Date().toISOString(); save();
+  }catch(e){ c.srv.pending=true; save(); }
+  finally{ delete flushing[key]; }
+}
+async function srvRevoke(c){
+  if(!API.on||!c.srv||!c.srv.token) return;
+  try{ const r=await apiPost('/api/c/optin',{on:false},c.srv.token); if(r&&r.ok){ c.srv.optin=false; c.srv.pendingRevoke=false; c.srv.mustRevoke=false; save(); } }
+  catch(e){ c.srv.pendingRevoke=true; save(); }
+}
+/* 周期对账：断网补传、撤回补达（开关状态是唯一事实源） */
+function srvSyncTick(){
+  if(!API.on) return;
+  S.camps.forEach((c,i)=>{
+    if(!c.srv||!c.srv.token) return;
+    /* 撤回是 fail-safe：本地缓存不可信（optin 应答可能丢失），mustRevoke 直到服务端确认才熄灭 */
+    if(!S.auth.behavior){ if(c.srv.mustRevoke||c.srv.optin===true||c.srv.pendingRevoke) srvRevoke(c); return; }
+    if(c.srv.ended||campDay(c)>22) return;   /* 营期结束：同步通道关闭，不再空转 */
+    if(c.srv.pending||c.srv.optin!==true||localDays(c)!==(c.srv.sentN||0)) srvFlush(i);
+  });
+}
+/* 换机恢复码：只含成员凭证，感受/自检结果从不进云端，换机不迁移 */
+function showRestoreCode(){
+  const list=S.camps.filter(c=>c.srv&&c.srv.token).map(c=>c.srv.token);
+  if(!list.length){ toast('还没有已连接营地的关'); return; }
+  const code='XSJR.'+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,t:list})))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  openModal(`
+    <h3 style="font-size:18px">换机恢复码（含登录凭证）</h3>
+    <p style="font-size:13px;opacity:.8;margin-top:8px">在新手机打开本应用 → 「换手机了？」→ 粘贴此码。<b>这是你的钥匙，别发给任何人（包括营主）。</b>能恢复的是入营与打卡记录；感受与自检结果只存在旧手机里，不经过云端。</p>
+    <textarea class="feel-input" readonly style="min-height:110px;font-family:var(--mono);font-size:11px;word-break:break-all" onclick="this.select()">${esc(code)}</textarea>
+    <button class="cbtn" style="margin-top:12px" onclick="closeModal()">收起</button>`);
+}
+function restorePrompt(){
+  if(!API.on){ toast('当前是本地模式，无法从云端恢复'); return; }
+  openModal(`
+    <h3 style="font-size:18px">从恢复码恢复</h3>
+    <p style="font-size:13px;opacity:.8;margin-top:8px">粘贴旧手机「我的 → 云端与换机」里生成的恢复码：</p>
+    <textarea class="feel-input" id="restin" placeholder="XSJR. 开头"></textarea>
+    <div id="restmsg"></div>
+    <button class="cbtn" style="margin-top:12px" onclick="doRestore()">恢复</button>`);
+}
+async function doRestore(){
+  const raw=($('#restin').value||'').trim();
+  const fail=t=>{ const el=$('#restmsg'); if(el) el.innerHTML=`<div class="result-blocked">${esc(t)}</div>`; };
+  let obj=null;
+  try{
+    if(!raw.startsWith('XSJR.')||raw.length>4000) throw 0;
+    obj=JSON.parse(decodeURIComponent(escape(atob(raw.slice(5).replace(/-/g,'+').replace(/_/g,'/')))));
+  }catch(e){ fail('恢复码无法解析'); return; }
+  const toks=(obj&&obj.v===1&&Array.isArray(obj.t)?obj.t:[])
+    .filter(t=>typeof t==='string'&&t.startsWith('m.')&&t.length<160).slice(0,6);
+  if(!toks.length){ fail('恢复码里没有可用凭证'); return; }
+  /* 恢复前若本机已有"授权关着"的云营，绝不因恢复而自动打开总闸（会连带把它也重新授权） */
+  const hadOffCloud=S.camps.some(c=>c.srv&&c.srv.token&&c.srv.optin!==true&&!c.srv.needsReauth&&!c.srv.ended);
+  let added=0,skipped=0,anyOpt=false;
+  for(const t of toks){
+    try{
+      const r=await apiGet('/api/c/camp',t);
+      if(!r||!r.ok){ skipped++; continue; }
+      if(S.camps.some(c=>c.campId===r.campId&&c.mid===r.mid)){ skipped++; continue; }
+      const jd=/^\d{4}-\d{2}-\d{2}$/.test(r.joinDate)?r.joinDate:todayStr();
+      const theme=['water','sleep','sun'].includes(r.theme)?r.theme:'water';
+      if(activeThemes().has(theme)&&campDay({joinDate:jd})<=21){ skipped++; continue; } /* 一主题一关的入营不变式 */
+      const cks={},mk={};
+      for(const [d,v] of Object.entries(r.checkins||{})){
+        if(/^\d+$/.test(d)&&v&&typeof v.tag==='string'){ cks[d]={tag:LEGAL_TAGS.includes(v.tag)?v.tag:'🌱',makeup:!!v.makeup}; if(v.makeup&&+d>=1) mk[d]=true; }
+      }
+      if(!cks[0]) cks[0]={tag:'🌱',makeup:false};
+      const srv={token:t,optin:!!r.optin,sentN:Object.keys(cks).filter(d=>+d>=1&&+d<=21).length};
+      if(r.deleted) srv.needsReauth=true;   /* 曾被营主删除：恢复后同步保持停止，等用户亲手重拨开关 */
+      S.camps.push({theme,campId:String(r.campId||'').slice(0,32),mid:r.mid,joinDate:jd,anchor:null,weakDay:null,
+        pact:true,day0:true,completed:false,completedAt:null,checkins:cks,makeupUsed:mk,srv});
+      if(r.optin&&!r.deleted) anyOpt=true;
+      if(r.nick&&!S.nick&&validatePublicText(r.nick)) S.nick=String(r.nick).slice(0,12);
+      added++;
+    }catch(e){ skipped++; }
+  }
+  if(added){
+    let deferAuth=false;
+    if(anyOpt&&!S.auth.behavior){
+      if(hadOffCloud){ deferAuth=true; }   /* 有关着的云营：不自动开总闸，交回用户决定 */
+      else { S.auth.behavior=true; S.auth.log.push({t:new Date().toISOString(),act:'auth_grant',scope:'打卡行为记录（随云端恢复延续）'}); }
+    }
+    S.cstage='camp'; S.ctab='today'; save(); closeModal();
+    toast(deferAuth?`已恢复 ${added} 个营——请到「我的」打开授权开关继续同步`:`已恢复 ${added} 个营${skipped?`（跳过 ${skipped} 个）`:''}`); render();
+  } else fail('没有恢复到任何营'+(skipped?`（${skipped} 个凭证无效或已存在）`:''));
+}
 
 /* ============================================================
    GUARD · 合规围栏（工程实现）
@@ -763,6 +900,7 @@ function renderWelcome(){
     <button class="cbtn" style="margin-top:24px" onclick="startQuiz()">开始自检</button>`}
     ${S.selfcheck.done?`<button class="cbtn sec" style="margin-top:10px" onclick="S.cstage='report';save();render()">回看我的私密报告</button>`:''}
     ${S.camps.length?`<button class="cbtn" style="margin-top:10px" onclick="S.cstage='camp';save();render()">进入我的营 →</button>`:''}
+    ${API.on&&!S.camps.length?`<button class="cbtn ghost" style="margin-top:8px" onclick="restorePrompt()">换手机了？粘贴恢复码</button>`:''}
     ${footNote()}`;
 }
 function startQuiz(){
@@ -959,20 +1097,34 @@ function setWeak(w){S.draft.weakDay=w;save();render();}
 function signPact(){S.draft.pact=true;save();render();}
 function day0(){S.draft.day0=true;save();track('day0_checkin',{theme:S.draft.theme});render();}
 function newMid(){ return Array.from(crypto.getRandomValues(new Uint8Array(6))).map(b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join(''); }
-function enterCamp(){
+let joiningCamp=false;
+async function enterCamp(){
   const dft=S.draft; if(!dft||!dft.day0) return;
+  if(joiningCamp) return;                    /* 云入营是异步的：双击不重复建营 */
+  joiningCamp=true;
+  try{
   if(activeThemes().has(dft.theme)){ S.draft=null; S.cstage='camp'; save(); render(); return; }
   const camp={theme:dft.theme,campId:dft.campId,mid:newMid(),joinDate:todayStr(),anchor:dft.anchor,weakDay:dft.weakDay,
     pact:true,day0:true,completed:false,completedAt:null,checkins:{0:{tag:'🌱',makeup:false}},makeupUsed:{}};
+  if(API.on){
+    try{
+      const r=await apiPost('/api/c/join',{campId:dft.campId,inviteToken:(S.entry.inviteToken||'').slice(0,32),nick:S.nick||'',clientDate:todayStr()});
+      if(r&&r.ok){ camp.campId=r.campId; camp.mid=r.mid; if(/^\d{4}-\d{2}-\d{2}$/.test(r.joinDate))camp.joinDate=r.joinDate; camp.srv={token:r.token,optin:false,sentN:0}; }
+      else toast(((r&&r.error)||'营地暂时联不上')+'（本次先记在手机里）');
+    }catch(e){ toast('营地暂时联不上，本次先记在手机里'); }
+  }
+  if(activeThemes().has(camp.theme)){ S.draft=null; S.cstage='camp'; save(); render(); return; }  /* await 期间可能已入同主题营 */
   S.camps.push(camp);
   track('camp_join',{theme:camp.theme,campId:camp.campId,mid:camp.mid});
+  if(camp.srv&&S.auth.behavior){ camp.srv.reconsent=true; srvFlush(S.camps.length-1); }
   S.draft=null; S.cstage='camp'; S.ctab='today'; save(); render();
+  }finally{ joiningCamp=false; }
 }
 function authSwitchesHTML(){
   return `
   <div class="switch-row">
     <button class="sw ${S.auth.behavior?'on':''}" onclick="toggleBehaviorAuth()" aria-label="行为记录授权开关"></button>
-    <div class="lab"><b>让营主看到我的打卡行为记录</b><br>仅打卡日期与天数，<b>不含</b>自检分数、雷达、信号灯、感受记录 · 每个营各自 21 天内有效 · 可随时撤回 · 操作会留记录</div>
+    <div class="lab"><b>让营主看到我的打卡行为记录</b><br>仅打卡日期与天数，<b>不含</b>自检分数、雷达、信号灯、感受记录 · 每个营各自 21 天内有效 · 可随时撤回 · 操作会留记录${API.on?'<br><b>云同步模式</b>：开 = 自动同步给对应营主并云端备份；关 = 只存手机、营主端即时不可见':''}</div>
   </div>
   <div class="switch-row">
     <button class="sw" disabled aria-label="感受记录永不可授权"></button>
@@ -984,7 +1136,13 @@ function toggleBehaviorAuth(){
   const act=S.auth.behavior?'auth_grant':'auth_revoke';
   S.auth.log.push({t:new Date().toISOString(),act,scope:'打卡行为记录'});
   save();track(act,{scope:'behavior'});
-  toast(S.auth.behavior?'已开启：可按营生成行为记录码发给营主':'已撤回：请告知营主删除你的记录');
+  if(S.auth.behavior) S.camps.forEach(c=>{ if(c.srv){ delete c.srv.needsReauth; c.srv.reconsent=true; } });  /* 亲手重拨 = 重新同意（服务端凭 reconsent 才清墓碑） */
+  else S.camps.forEach(c=>{ if(c.srv) c.srv.mustRevoke=true; });                                             /* 撤回必达：直到服务端确认才停 */
+  srvSyncTick();
+  const cloud=API.on&&S.camps.some(c=>c.srv&&c.srv.token);
+  toast(S.auth.behavior
+    ?(cloud?'已开启：打卡行为将自动同步给对应营主':'已开启：可按营生成行为记录码发给营主')
+    :(cloud?'已撤回：营主看板即时不可见':'已撤回：请告知营主删除你的记录'));
   render();
 }
 
@@ -1106,6 +1264,7 @@ function checkin(i,tag,day){
   if(checkedTo21(c)>=21&&!c.completed){ c.completed=true; c.completedAt=todayStr(); track('camp_complete',{theme:c.theme,campId:c.campId}); }
   save();
   track('checkin',{theme:c.theme,campId:c.campId,day,tag,makeup:isMakeup});
+  if(c.srv) srvFlush(i);
   render();
   const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
   const zone=$('#quotezone-'+i);
@@ -1224,7 +1383,7 @@ function renderMe(){
       ${S.camps.map((c,i)=>{const over=campDay(c)>21;return `
       <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px dashed var(--line)">
         ${ICN(c.theme,'g',18)}
-        <div style="flex:1;font-size:13px"><b>${themeOf(c.theme).name}</b><br><span class="small-note num">营 ${esc(c.campId)} · ${over?'已结营':`第 ${Math.min(campDay(c),21)}/21 天`}</span></div>
+        <div style="flex:1;font-size:13px"><b>${themeOf(c.theme).name}</b><br><span class="small-note num">营 ${esc(c.campId)} · ${over?'已结营':`第 ${Math.min(campDay(c),21)}/21 天`}${API.on&&c.srv?(c.srv.needsReauth?' · <span style="color:var(--accent)">同步已停（记录被营主删除，重拨上方开关可恢复）</span>':(c.srv.ended?' · 营期结束，同步通道已关':(c.srv.pending?' · <span style="color:var(--accent)">待同步</span>':' · 已自动同步'))):''}</span></div>
         ${over?`<span class="small-note">通道已关闭</span>`:`<button class="cbtn sec" style="width:auto;padding:8px 13px;margin:0;font-size:13px;box-shadow:none" onclick="showAuthCode(${i})">生成记录码</button>`}
       </div>`;}).join('')}
       <p class="small-note">码里只有：营编号、成员编号、你的称呼、打卡日期与天数。分数、雷达、感受在码的结构里<b>不存在</b>。</p>`:`
@@ -1257,6 +1416,15 @@ function renderMe(){
     </div>`:''}
 
     <div class="c-card">
+      <p class="c-kicker">云端与换机</p>
+      ${API.on?`<p style="font-size:13.5px;color:var(--ink2)">已连接营地服务器。${S.auth.behavior?'打卡行为按营自动同步，云端留有备份。':'行为授权未开启，数据只存本机。'}</p>
+      ${S.camps.some(c=>c.srv&&c.srv.token)?`<button class="cbtn sec" style="margin-top:10px" onclick="showRestoreCode()">生成换机恢复码</button>`:''}`
+      :`<p style="font-size:13.5px;color:var(--ink2)">当前为本地模式（离线或静态托管），数据只存本机。</p>`}
+      <button class="cbtn ghost" onclick="restorePrompt()">换手机了？粘贴恢复码</button>
+      <p class="small-note">恢复码含你的登录凭证，别发给任何人。感受与自检结果从不进云端，换机不迁移。</p>
+    </div>
+
+    <div class="c-card">
       <p class="c-kicker">帮助与监督</p>
       <button class="cbtn ghost" style="text-align:left;padding-left:0" onclick="complain()"><span style="display:inline-flex;vertical-align:-5px;margin-right:5px">${ICN('bell','',18)}</span>投诉 / 举报（营主或内容有问题，直接告诉平台）</button>
       <button class="cbtn ghost" style="text-align:left;padding-left:0" onclick="if(confirm('清空本机全部记录？不可恢复。')){localStorage.removeItem(LS_KEY);location.reload();}"><span style="display:inline-flex;vertical-align:-5px;margin-right:5px">${ICN('trash','',18)}</span>清空本机数据</button>
@@ -1267,6 +1435,7 @@ function saveNick(){
   const v=$('#nickin').value.trim().slice(0,12);
   if(v&&!validatePublicText(v)){ toast('这个称呼里有不能对外的词，换一个吧'); return; }
   S.nick=v; save(); toast('记住了');
+  if(API.on) S.camps.forEach(c=>{ if(c.srv&&c.srv.token) apiPost('/api/c/nick',{nick:v},c.srv.token).catch(()=>{}); });
 }
 /* 行为记录码：一营一码；白名单字段，结构上不存在分数/雷达/感受（工程锁） */
 function makeAuthCode(i){
@@ -1391,6 +1560,9 @@ function openShare(type,ci){
 function render(){ renderC(); scheduleScan(); }
 stripUrlParams();
 render();
+apiDetect();
+setInterval(srvSyncTick,25000);
+window.addEventListener('online',srvSyncTick);
 </script>
 </body>
 </html>
