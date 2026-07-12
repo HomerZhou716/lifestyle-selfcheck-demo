@@ -215,7 +215,7 @@ body[data-role="b"] #honest{background:#101720;color:#8fa0b3;border-bottom:1px s
 .quote-pop small{display:block;font-family:var(--sans);font-size:11px;opacity:.8;margin-top:6px}
 .map21{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
 .map21 .cell{aspect-ratio:1;border-radius:8px;background:var(--paper2);display:grid;place-items:center;
-  font-size:15px;position:relative;border:1px solid var(--line)}
+  font-size:15px;position:relative;border:1px solid var(--line);cursor:pointer}
 .map21 .cell .d{position:absolute;top:2px;left:5px;font-size:8.5px;color:var(--ink3);font-weight:700}
 .map21 .cell.hit{background:linear-gradient(165deg,#dcebe4,#b7d8cb);border-color:#9cc6b8}
 .map21 .cell.sim{background:#eef2ef;border-style:dashed;opacity:.85}
@@ -513,11 +513,12 @@ const PREREG_METRICS=['完营率','习惯主题匹配→入营转化率','D3 留
 /* ==================== 状态 ==================== */
 const LS_KEY='lifestyle_c_v1';
 const DEFAULT_STATE={
-  ctab:'today', cstage:'welcome', nick:'',
+  ctab:'today', cstage:'welcome', nick:'', lastPerfect:'',
   entry:{campId:'pilot',inviteToken:''},
   selfcheck:{answers:[],done:false,scores:null},
-  camp:{joined:false,theme:null,anchor:null,weakDay:null,pact:false,day0:false,joinDate:null,completed:false,completedAt:null,campId:null,mid:null,checkins:{},makeupUsed:{}},
-  priv:{feelTags:{},feelText:{},witness:''},      /* 私有：永不进入分享卡/行为记录码渲染路径 */
+  camps:[],            /* 一人可多营：一关一个习惯，同时最多三关（每主题一关） */
+  draft:null,          /* 入营流程草稿 */
+  priv:{feel:{},witness:{}},   /* 私有：feel 按日期、witness 按营；永不进入分享卡/行为记录码渲染路径 */
   auth:{behavior:false,log:[]},
   complaintsList:[], events:[], inviteOpens:0,
 };
@@ -534,14 +535,41 @@ function deepMerge(def,sav){
 }
 let S=load();
 function load(){
+  let raw=null;
+  try{ raw=JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch(e){ raw=null; }
+  /* v1 单营 → v2 多营迁移（旧感受按天序 → 按日期；见证 → 按营） */
+  try{
+    if(raw&&raw.camp&&raw.camp.joined){
+      const oc=raw.camp;
+      raw.camps=[{theme:oc.theme||'water',campId:oc.campId||'pilot',mid:oc.mid||null,joinDate:oc.joinDate||null,
+        anchor:oc.anchor||null,weakDay:oc.weakDay||null,pact:!!oc.pact,day0:!!oc.day0,
+        completed:!!oc.completed,completedAt:oc.completedAt||null,checkins:oc.checkins||{},makeupUsed:oc.makeupUsed||{}}];
+      const nf={}; const jd=oc.joinDate;
+      if(raw.priv&&jd&&/^\d{4}-\d{2}-\d{2}$/.test(jd)){
+        for(const[di,v]of Object.entries(raw.priv.feelTags||{})){ const ds=dateAdd(jd,+di); nf[ds]=nf[ds]||{tags:[],text:''}; nf[ds].tags=Array.isArray(v)?v:[]; }
+        for(const[di,v]of Object.entries(raw.priv.feelText||{})){ const ds=dateAdd(jd,+di); nf[ds]=nf[ds]||{tags:[],text:''}; nf[ds].text=String(v||''); }
+      }
+      const w={}; if(raw.priv&&typeof raw.priv.witness==='string'&&raw.priv.witness) w[(oc.campId||'pilot')+'|'+(oc.theme||'water')]=raw.priv.witness;
+      raw.priv={feel:nf,witness:w};
+      delete raw.camp;
+    }
+  }catch(e){}
   let st;
-  try{const raw=localStorage.getItem(LS_KEY); st=raw?deepMerge(DEFAULT_STATE,JSON.parse(raw)):structuredClone(DEFAULT_STATE);}
+  try{ st=raw?deepMerge(DEFAULT_STATE,raw):structuredClone(DEFAULT_STATE); }
   catch(e){ st=structuredClone(DEFAULT_STATE); }
   /* 结构净化：坏元素隔离，不让旧数据崩页 */
   st.selfcheck.answers=(Array.isArray(st.selfcheck.answers)?st.selfcheck.answers:[]).filter(a=>a&&typeof a.dim==='string'&&Number.isFinite(a.score));
-  const cks={}; if(st.camp&&st.camp.checkins&&typeof st.camp.checkins==='object')
-    for(const [k,v] of Object.entries(st.camp.checkins)) if(/^\d+$/.test(k)&&v&&typeof v.tag==='string') cks[k]={tag:v.tag.slice(0,4),makeup:!!v.makeup};
-  st.camp.checkins=cks;
+  st.camps=(Array.isArray(st.camps)?st.camps:[]).filter(c=>c&&typeof c==='object'&&typeof c.theme==='string').map(c=>{
+    const cks={};
+    if(c.checkins&&typeof c.checkins==='object')
+      for(const [k,v] of Object.entries(c.checkins)) if(/^\d+$/.test(k)&&v&&typeof v.tag==='string') cks[k]={tag:v.tag.slice(0,4),makeup:!!v.makeup};
+    c.checkins=cks;
+    c.makeupUsed=(c.makeupUsed&&typeof c.makeupUsed==='object')?c.makeupUsed:{};
+    return c;
+  });
+  if(!st.priv||typeof st.priv!=='object') st.priv={feel:{},witness:{}};
+  if(typeof st.priv.witness!=='object'||st.priv.witness===null) st.priv.witness={};
+  if(typeof st.priv.feel!=='object'||st.priv.feel===null) st.priv.feel={};
   return st;
 }
 function save(){ try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){} }
@@ -630,12 +658,8 @@ function stripUrlParams(){
       sessionStorage.setItem('invite_seen','1');
       S.inviteOpens++; track('invite_open');
     }
-    if(!S.camp.joined){
-      if(sp.has('campId')) S.entry.campId=String(sp.get('campId')).slice(0,32);
-      if(sp.has('inviteToken')) S.entry.inviteToken=String(sp.get('inviteToken')).slice(0,32);
-    }else if(sp.has('campId')&&String(sp.get('campId')).slice(0,32)!==(S.camp.campId||S.entry.campId)){
-      toast('你已在营中。如需加入新营，请先在「我的」里清空本机数据');
-    }
+    if(sp.has('campId')) S.entry.campId=String(sp.get('campId')).slice(0,32);
+    if(sp.has('inviteToken')) S.entry.inviteToken=String(sp.get('inviteToken')).slice(0,32);
     save();
   }catch(e){}
 }
@@ -738,6 +762,7 @@ function renderWelcome(){
     </div>`:`
     <button class="cbtn" style="margin-top:24px" onclick="startQuiz()">开始自检</button>`}
     ${S.selfcheck.done?`<button class="cbtn sec" style="margin-top:10px" onclick="S.cstage='report';save();render()">回看我的私密报告</button>`:''}
+    ${S.camps.length?`<button class="cbtn" style="margin-top:10px" onclick="S.cstage='camp';save();render()">进入我的营 →</button>`:''}
     ${footNote()}`;
 }
 function startQuiz(){
@@ -855,62 +880,68 @@ function drawRadar(box,sc){
   (function frame(t){const p=Math.min(1,(t-t0)/dur);setP(p);if(p<1)requestAnimationFrame(frame);})(t0);
 }
 
-/* ---------- S4 习惯主题匹配 ---------- */
+/* ---------- S4 习惯主题匹配（多营：一关一习惯） ---------- */
+function activeThemes(){ return new Set(S.camps.filter(c=>campDay(c)<=21).map(c=>c.theme)); }
 function renderMatch(){
   const sc=S.selfcheck.scores||{};
   const keys=['water','sleep','sun'].sort((a,b)=>(sc[a]??9)-(sc[b]??9));
   const allGreen=DIMS.every(d=>(sc[d.key]??0)>=7);   /* 全绿判定必须覆盖全部六维 */
+  const act=activeThemes();
   VC.innerHTML=`
-    <h2 style="font-family:var(--serif);font-size:23px;margin-top:14px">${allGreen?'习惯都挺稳！挑一个当第 1 关，体验『好习惯 × 时间』这道公式。':'按你自己填的关注方向，这几关都适合先练'}</h2>
-    ${keys.map(k=>{const t=THEMES[k];const dimGreen=(sc[t.dim]??0)>=7;return `
-    <div class="theme-card" onclick="pickTheme('${k}')">
+    <h2 style="font-family:var(--serif);font-size:23px;margin-top:14px">${allGreen?'习惯都挺稳！挑一关，体验『好习惯 × 时间』这道公式。':'按你自己填的关注方向，这几关都适合先练'}</h2>
+    ${keys.map(k=>{const t=THEMES[k];const dimGreen=(sc[t.dim]??0)>=7;const on=act.has(k);return `
+    <div class="theme-card" ${on?'style="opacity:.6;cursor:default"':`onclick="pickTheme('${k}')"`}>
       <span class="ic">${ICN(k,'g',30)}</span>
       <div style="flex:1">
-        <h4>${t.name}${t.full?'':'<span class="demo-tag">演示样例</span>'}</h4>
-        <p class="why">${(allGreen||dimGreen)?esc(t.play):esc(t.why)}</p>
+        <h4>${t.name}${t.full?'':'<span class="demo-tag">内容试运行</span>'}${on?'<span class="demo-tag" style="background:var(--green-wash);color:var(--green-d)">进行中</span>':''}</h4>
+        <p class="why">${on?'这一关正在进行——去「今日」接着打卡就好。':((allGreen||dimGreen)?esc(t.play):esc(t.why))}</p>
         <p class="play">${esc(t.play)}</p>
       </div></div>`;}).join('')}
-    <p class="small-note" style="text-align:center;margin-top:14px">这是按你的自评关注方向做的排序，不是身体判断。选哪个，你说了算。</p>
+    <p class="small-note" style="text-align:center;margin-top:14px">这是按你的自评关注方向做的排序，不是身体判断。一关一个习惯，可以同时练几关，选哪个、选几关，你说了算。</p>
+    ${S.camps.length?`<button class="cbtn sec" style="margin-top:10px" onclick="S.cstage='camp';save();render()">返回我的营</button>`:''}
     <button class="cbtn ghost" style="margin-top:10px" onclick="openShare('selfcheck')">生成「我完成了自检」分享卡（可跳过）</button>
     ${footNote()}`;
 }
 function pickTheme(k){
+  if(activeThemes().has(k)){ toast('这一关正在进行中，去「今日」打卡吧'); return; }
   track('theme_select',{theme:k});
-  S.camp.theme=k; S.cstage='join'; save(); render();   /* joined 只在完成入营三步后成立 */
+  S.draft={theme:k,campId:(S.entry.campId||'pilot').slice(0,32),anchor:null,weakDay:null,pact:false,day0:false};
+  S.cstage='join'; save(); render();
 }
 
-/* ---------- S5 入营三步（Day0） ---------- */
+/* ---------- S5 入营三步（Day0，基于草稿） ---------- */
 function renderJoin(){
-  const t=THEMES[S.camp.theme||'water'];
-  const c=S.camp;
+  const dft=S.draft;
+  if(!dft){ S.cstage=S.camps.length?'camp':(S.selfcheck.done?'match':'welcome'); save(); render(); return; }
+  const t=THEMES[dft.theme||'water'];
   VC.innerHTML=`
-    <div class="lock-line" style="margin-top:10px">${ICN(S.camp.theme||'water','g',20)}<span>已加入 ${ROLE_NAME}的 21 天${t.name}</span></div>
+    <div class="lock-line" style="margin-top:10px">${ICN(dft.theme||'water','g',20)}<span>即将加入 ${ROLE_NAME}的 21 天${t.name}</span></div>
 
     <div class="c-card">
       <p class="c-kicker">第 1 步 · 把习惯挂在日常上</p>
       <h3 style="font-size:17px">我在 ___ 之后，${t.act==='每天一杯水'?'先喝一杯水':t.act}</h3>
       <div class="anchor-grid">
-        ${ANCHORS.map(a=>`<button class="${c.anchor===a?'on':''}" onclick="setAnchor('${a}')">${a}</button>`).join('')}
+        ${ANCHORS.map(a=>`<button class="${dft.anchor===a?'on':''}" onclick="setAnchor('${a}')">${a}</button>`).join('')}
       </div>
-      <button class="cbtn sec" style="margin-top:14px" onclick="toast('好，就位是第一步 ✓')">${esc(t.prep)}</button>
+      <button class="cbtn sec" style="margin-top:14px" onclick="toast('好，就位是第一步')">${esc(t.prep)}</button>
     </div>
 
-    <div class="c-card" style="${c.anchor?'':'opacity:.45;pointer-events:none'}">
+    <div class="c-card" style="${dft.anchor?'':'opacity:.45;pointer-events:none'}">
       <p class="c-kicker">第 2 步 · 我的约定</p>
       <div style="margin-bottom:10px">
         <p class="small-note" style="margin:0 0 6px">最可能让我断的一天是：</p>
         <div class="anchor-grid" style="margin-top:0">
-          ${WEAKDAYS.map(w=>`<button class="${c.weakDay===w?'on':''}" onclick="setWeak('${w}')">${w}</button>`).join('')}
+          ${WEAKDAYS.map(w=>`<button class="${dft.weakDay===w?'on':''}" onclick="setWeak('${w}')">${w}</button>`).join('')}
         </div>
       </div>
-      <div class="pact">如果我<u>${esc(c.anchor||'……')}</u>，我就${t.act==='每天一杯水'?'喝一杯水':t.act}；最可能让我断的一天是<u>${esc(c.weakDay||'……')}</u>，那天我就补一次也算。<br>21 天以后，我想亲眼看看：<b>「好习惯 × 时间」</b>这道公式，在我身上是不是真的。</div>
-      <button class="cbtn clay" style="margin-top:12px" ${c.weakDay?'':'disabled'} onclick="signPact()">${c.pact?'已击掌':'点一下，击个掌'}</button>
+      <div class="pact">如果我<u>${esc(dft.anchor||'……')}</u>，我就${t.act==='每天一杯水'?'喝一杯水':t.act}；最可能让我断的一天是<u>${esc(dft.weakDay||'……')}</u>，那天我就补一次也算。<br>21 天以后，我想亲眼看看：<b>「好习惯 × 时间」</b>这道公式，在我身上是不是真的。</div>
+      <button class="cbtn clay" style="margin-top:12px" ${dft.weakDay?'':'disabled'} onclick="signPact()">${dft.pact?'已击掌':'点一下，击个掌'}</button>
     </div>
 
-    <div class="c-card" style="${c.pact?'':'opacity:.45;pointer-events:none'}">
+    <div class="c-card" style="${dft.pact?'':'opacity:.45;pointer-events:none'}">
       <p class="c-kicker">第 3 步 · 现在就完成第一次</p>
       <p style="font-size:14px;color:var(--ink2)">别等明天——${esc(t.day0)}。</p>
-      <button class="cbtn" style="margin-top:12px" ${c.day0?'disabled':''} onclick="day0()">${c.day0?'开营预打卡完成 ✓（明天点亮第 1 格）':'做完了，这次就算数'}</button>
+      <button class="cbtn" style="margin-top:12px" ${dft.day0?'disabled':''} onclick="day0()">${dft.day0?'开营预打卡完成（明天点亮第 1 格）':'做完了，这次就算数'}</button>
     </div>
 
     <div class="c-card">
@@ -919,37 +950,29 @@ function renderJoin(){
       <p class="small-note">加入训练营 ≠ 授权健康数据。不勾也能正常玩。</p>
     </div>
 
-    <button class="cbtn" style="margin-top:16px" ${c.day0?'':'disabled'} onclick="enterCamp()">进入我的营 →</button>
+    <button class="cbtn" style="margin-top:16px" ${dft.day0?'':'disabled'} onclick="enterCamp()">进入我的营 →</button>
+    <button class="cbtn ghost" onclick="S.draft=null;S.cstage=S.camps.length?'camp':'match';save();render()">先不加这一关</button>
     ${footNote()}`;
 }
-function setAnchor(a){S.camp.anchor=a;save();track('anchor_set',{anchor:a});render();}
-function setWeak(w){S.camp.weakDay=w;save();render();}
-function signPact(){S.camp.pact=true;save();render();}
-function day0(){S.camp.day0=true;S.camp.joinDate=S.camp.joinDate||todayStr();S.camp.checkins[0]={tag:'🌱',makeup:false};save();track('day0_checkin');render();}
+function setAnchor(a){S.draft.anchor=a;save();track('anchor_set',{anchor:a});render();}
+function setWeak(w){S.draft.weakDay=w;save();render();}
+function signPact(){S.draft.pact=true;save();render();}
+function day0(){S.draft.day0=true;save();track('day0_checkin',{theme:S.draft.theme});render();}
 function newMid(){ return Array.from(crypto.getRandomValues(new Uint8Array(6))).map(b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join(''); }
 function enterCamp(){
-  S.camp.joined=true; S.camp.joinDate=S.camp.joinDate||todayStr();
-  S.camp.campId=S.camp.campId||(S.entry.campId||'pilot');   /* 入营时冻结，之后 URL 换营不影响 */
-  S.camp.mid=S.camp.mid||newMid();                           /* 不可变成员 ID，昵称只做展示 */
-  S.cstage='camp'; S.ctab='today'; save();
-  track('camp_join',{theme:S.camp.theme,campId:S.camp.campId,mid:S.camp.mid}); render();
-}
-const TAGS=[['☀️','晨起','dawn'],['🍜','饭前','meal'],['😮‍💨','忙里偷闲','breather'],['🌙','睡前','night']];
-/* 真实日期引擎：Day0=入营当天，D1–D21 为其后 21 个自然日 */
-function dayMs(iso){ const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d).getTime(); }
-function todayIdx(){
-  const jd=S.camp.joinDate;
-  if(!jd||!/^\d{4}-\d{2}-\d{2}$/.test(jd)){ if(S.camp.joined){S.camp.joinDate=todayStr();save();} return 0; }
-  const diff=Math.round((dayMs(todayStr())-dayMs(jd))/86400000);
-  if(!Number.isFinite(diff)){ S.camp.joinDate=todayStr(); save(); return 0; }
-  if(diff<0){ S.camp.joinDate=todayStr(); save(); return 0; }   /* 系统时间回拨/未来日期：以今天重新锚定 */
-  return diff;
+  const dft=S.draft; if(!dft||!dft.day0) return;
+  if(activeThemes().has(dft.theme)){ S.draft=null; S.cstage='camp'; save(); render(); return; }
+  const camp={theme:dft.theme,campId:dft.campId,mid:newMid(),joinDate:todayStr(),anchor:dft.anchor,weakDay:dft.weakDay,
+    pact:true,day0:true,completed:false,completedAt:null,checkins:{0:{tag:'🌱',makeup:false}},makeupUsed:{}};
+  S.camps.push(camp);
+  track('camp_join',{theme:camp.theme,campId:camp.campId,mid:camp.mid});
+  S.draft=null; S.cstage='camp'; S.ctab='today'; save(); render();
 }
 function authSwitchesHTML(){
   return `
   <div class="switch-row">
     <button class="sw ${S.auth.behavior?'on':''}" onclick="toggleBehaviorAuth()" aria-label="行为记录授权开关"></button>
-    <div class="lab"><b>让营主看到我的打卡行为记录</b><br>仅打卡日期与天数，<b>不含</b>自检分数、雷达、信号灯、感受记录 · 本营 21 天内有效 · 可随时撤回 · 操作会留记录</div>
+    <div class="lab"><b>让营主看到我的打卡行为记录</b><br>仅打卡日期与天数，<b>不含</b>自检分数、雷达、信号灯、感受记录 · 每个营各自 21 天内有效 · 可随时撤回 · 操作会留记录</div>
   </div>
   <div class="switch-row">
     <button class="sw" disabled aria-label="感受记录永不可授权"></button>
@@ -961,27 +984,40 @@ function toggleBehaviorAuth(){
   const act=S.auth.behavior?'auth_grant':'auth_revoke';
   S.auth.log.push({t:new Date().toISOString(),act,scope:'打卡行为记录'});
   save();track(act,{scope:'behavior'});
-  toast(S.auth.behavior?'已开启：可生成行为记录码发给营主':'已撤回：请告知营主删除你的记录');
+  toast(S.auth.behavior?'已开启：可按营生成行为记录码发给营主':'已撤回：请告知营主删除你的记录');
   render();
 }
 
-function checkedDays(){ return Object.keys(S.camp.checkins).filter(k=>+k>0).length; }
-function checkedDaysUpTo21(){ let n=0; for(let i=1;i<=21;i++) if(S.camp.checkins[i]) n++; return n; }
-function streakNow(){
-  const raw=todayIdx(), t=Math.min(raw,21); let s=0;
+/* ---------- 真实日期引擎（按营） ---------- */
+const TAGS=[['☀️','晨起','dawn'],['🍜','饭前','meal'],['😮‍💨','忙里偷闲','breather'],['🌙','睡前','night']];
+function dayMs(iso){ const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d).getTime(); }
+function dateAdd(iso,n){ const t=new Date(dayMs(iso)+n*86400000); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; }
+function campDay(c){
+  const jd=c&&c.joinDate;
+  if(!jd||!/^\d{4}-\d{2}-\d{2}$/.test(jd)){ if(c){c.joinDate=todayStr();save();} return 0; }
+  const diff=Math.round((dayMs(todayStr())-dayMs(jd))/86400000);
+  if(!Number.isFinite(diff)||diff<0){ c.joinDate=todayStr(); save(); return 0; }
+  return diff;
+}
+function checkedDaysC(c){ return Object.keys(c.checkins).filter(k=>+k>0).length; }
+function checkedTo21(c){ let n=0; for(let i=1;i<=21;i++) if(c.checkins[i]) n++; return n; }
+function streakC(c){
+  const raw=campDay(c), t=Math.min(raw,21); let n=0;
   for(let d=t;d>=1;d--){
-    if(S.camp.checkins[d]) s++;
-    else if(d===t&&raw<=21) continue;   /* 营期内：今天还没打不算断；营期已过：D21 缺卡就是断 */
+    if(c.checkins[d]) n++;
+    else if(d===t&&raw<=21) continue;   /* 营期内：今天还没打不算断 */
     else break;
   }
-  return s;
+  return n;
 }
+function tagLabel(tag){ const f=TAGS.find(x=>x[0]===tag); return f?f[1]:'打卡'; }
+function activeCamps(){ return S.camps.map((c,i)=>({c,i})).filter(x=>campDay(x.c)<=21); }
+function doneToday(c){ const d=Math.min(campDay(c),21); return d>=1&&!!c.checkins[d]; }
 
 /* ---------- S6 营内（今日 / 地图 / 我的） ---------- */
 function renderCamp(){
-  /* 状态机守卫：没走完入营三步就到不了营内 */
-  if(!S.camp.joined||!S.camp.day0){
-    S.cstage=S.camp.theme?'join':(S.selfcheck.done?'match':'welcome');
+  if(!S.camps.length){
+    S.cstage=S.draft?'join':(S.selfcheck.done?'match':'welcome');
     save(); render(); return;
   }
   const bar=$('#ctabbar');
@@ -989,123 +1025,186 @@ function renderCamp(){
     .map(([k,lab])=>`<button class="${S.ctab===k?'on':''}" onclick="S.ctab='${k}';save();render()">${ICN(k,S.ctab===k?'g':'',23)}${lab}</button>`).join('');
   ({today:renderToday,map:renderMap,me:renderMe})[S.ctab]();
 }
-function contentCard(){
-  const d=Math.min(todayIdx(),21),t=THEMES[S.camp.theme||'water'];
-  const c=CONTENT_CARDS[d]||CONTENT_CARDS.default;
-  const skin=t.full?'':`<span class="demo-tag">演示样例 · 内容换皮</span>`;
-  return `<div class="c-card"><p class="c-kicker">今日内容 · 早 8:00 ${skin}</p>
-    <h3 style="font-size:16.5px">${esc(c.t)}</h3><p class="story-card">${c.s}</p>
-    <p class="small-note" style="margin-top:10px">今天的动作：<b>${esc(t.act)}</b>，然后回来点一下。</p></div>`;
+function themeOf(k){ return THEMES[k||'water']; }
+function contentCard(c){
+  const d=Math.min(campDay(c),21),t=themeOf(c.theme);
+  const cc=CONTENT_CARDS[d]||CONTENT_CARDS.default;
+  const skin=t.full?'':`<span class="demo-tag">内容试运行</span>`;
+  return `<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px">
+    <p class="c-kicker">今日内容 · 早 8:00 ${skin}</p>
+    <h3 style="font-size:16px;margin-top:4px">${esc(cc.t)}</h3><p class="story-card">${cc.s}</p>
+    <p class="small-note" style="margin-top:8px">今天的动作：<b>${esc(t.act)}</b>，然后回来点一下。</p></div>`;
 }
 function renderToday(){
-  const t=todayIdx(), d=Math.min(t,21), c=S.camp, days=checkedDays(), st=streakNow();
-  const over=t>21;
-  const canMakeup=!over&&d>=2&&!c.checkins[d-1]&&!c.makeupUsed[d-1];
+  const started=activeCamps().filter(x=>campDay(x.c)>=1);
+  const day0s=activeCamps().filter(x=>campDay(x.c)===0);
+  const overs=S.camps.map((c,i)=>({c,i})).filter(x=>campDay(x.c)>21);
+  const doneCnt=started.filter(x=>doneToday(x.c)).length;
+  const allDone=started.length>0&&doneCnt===started.length;
   VC.innerHTML=`
     <div class="streak-hero">
-      <div class="n num" id="streakN">${st}</div>
-      <p class="lab">已连续 ${st} 天 · 共打卡 ${days} 天 · 第 ${d} / 21 天</p>
-      <div class="paper-stack">${Array.from({length:Math.min(days,21)},(_,i)=>`<i style="height:${3+i*1.4}px"></i>`).join('')||`<span class="small-note">${c.day0?'开营预打卡已完成，明天点亮第 1 格':'你的“垫纸”会从这里长起来'}</span>`}</div>
+      <div class="n num" id="streakN">${doneCnt}<span style="font-size:24px;color:var(--ink3)"> / ${started.length||day0s.length||S.camps.length}</span></div>
+      <p class="lab">今日打卡进度${allDone?' · 今日全勤':''}</p>
+      ${allDone?`<div class="quote-pop" style="margin:12px 2px 0;display:flex;gap:8px;align-items:center">${ICN('spark','wt',20)}<span>「今天所有的小事都做成了。」</span></div>`:''}
     </div>
-    ${t===0?`<div class="c-card"><p class="c-kicker">开营日</p><p style="font-size:14px;color:var(--ink2)">你已经完成开营预打卡。明天开始每天一条内容、一次点选——明早见。</p></div>`:''}
-    ${over?`<div class="milestone"><div class="ic">${ICN('flag','g',38)}</div><h4>21 天走完了</h4><p>共打卡 ${days} 天——每一格都是真实记录。</p>${days>=21?`<button class="cbtn" style="margin-top:12px" onclick="showCert()">领取《21 天打卡完成凭证》</button>`:`<button class="cbtn sec" style="margin-top:12px" onclick="showReview()">看看我的 21 天（私有回顾）</button>`}</div>`:''}
-    ${canMakeup?`<div class="c-card" style="border-color:var(--clay)"><p style="font-size:14px">昨天断了很正常，前面攒的一天没丢。按咱们的约定，<b>补一次也算</b>。</p><button class="cbtn sec" style="margin-top:10px" onclick="checkin('🌱',${d-1})">补上昨天（D${d-1}）</button></div>`:''}
-    ${!over&&d>=1?contentCard():''}
-    ${!over&&d>=1?`
-    <div class="c-card">
-      <p class="c-kicker">今天这一下，是哪种？</p>
-      <div class="checkin-grid">
-        ${TAGS.map(([tg,lab,ik])=>`<button ${c.checkins[d]?'disabled':''} onclick="checkin('${tg}')">${ICN(ik,'',26)}${lab}</button>`).join('')}
-      </div>
-      ${c.checkins[d]?`<p class="small-note" style="text-align:center;margin-top:10px">今天已打卡 · 明日内容已解锁</p>`:''}
-      <div id="quotezone"></div>
-    </div>`:''}
-    ${milestoneHTML()}
-    ${!over&&d>=1?feelBlockHTML():''}
+    ${day0s.map(({c})=>`<div class="c-card"><div style="display:flex;align-items:center;gap:8px">${ICN(c.theme,'g',20)}<b style="font-family:var(--serif);font-size:16px">${themeOf(c.theme).name} · 开营日</b></div><p style="font-size:14px;color:var(--ink2);margin-top:6px">开营预打卡已完成。明天开始每天一条内容、一次点选——明早见。</p></div>`).join('')}
+    ${started.map(({c,i})=>campTodayCard(c,i)).join('')}
+    ${overs.map(({c,i})=>campOverCard(c,i)).join('')}
+    ${nextThemeCard()}
+    ${(started.length||overs.length)?feelBlockHTML():''}
     ${footNote()}`;
 }
-function themeOf(k){ return THEMES[k||'water']; }
-function checkin(tag,day){
-  const t=todayIdx();
-  if(t>21) return;                                        /* 营期已结束，不再接受任何打卡 */
-  const cur=t;
+function campTodayCard(c,i){
+  const t=themeOf(c.theme), d=Math.min(campDay(c),21), st=streakC(c), done=!!c.checkins[d];
+  const canMakeup=d>=2&&!c.checkins[d-1]&&!c.makeupUsed[d-1];
+  return `
+  <div class="c-card" style="border-top:3px solid ${done?'var(--green)':'var(--line2)'}">
+    <div style="display:flex;align-items:center;gap:9px">
+      ${ICN(c.theme,'g',22)}<b style="font-family:var(--serif);font-size:17px">${t.name}</b>
+      <span class="small-note" style="margin:0 0 0 auto">第 ${d}/21 天 · 连续 ${st} 天${done?' · 今日已完成':''}</span>
+    </div>
+    ${contentCard(c)}
+    ${canMakeup?`<div style="border:1px solid var(--clay);border-radius:11px;padding:10px 12px;margin-top:12px"><p style="font-size:13px">昨天断了很正常，前面攒的一天没丢。按咱们的约定，<b>补一次也算</b>。</p><button class="cbtn sec" style="margin-top:8px" onclick="checkin(${i},'🌱',${d-1})">补上昨天（D${d-1}）</button></div>`:''}
+    <div class="checkin-grid">
+      ${TAGS.map(([tg,lab,ik])=>`<button ${done?'disabled':''} onclick="checkin(${i},'${tg}')">${ICN(ik,'',26)}${lab}</button>`).join('')}
+    </div>
+    ${done?`<p class="small-note" style="text-align:center;margin-top:10px">今天已打卡（${tagLabel(c.checkins[d].tag)}）· 明日内容已解锁</p>`:''}
+    <div id="quotezone-${i}"></div>
+    ${milestoneHTML(c,i)}
+  </div>`;
+}
+function campOverCard(c,i){
+  const days=checkedTo21(c);
+  return `<div class="milestone"><div class="ic">${ICN('flag','g',38)}</div><h4>${themeOf(c.theme).name} · 21 天走完了</h4><p>共打卡 ${days} 天——每一格都是真实记录。</p>
+    ${days>=21?`<button class="cbtn" style="margin-top:12px" onclick="showCert(${i})">领取《21 天打卡完成凭证》</button>`:`<button class="cbtn sec" style="margin-top:12px" onclick="showReview(${i})">看看我的 21 天（私有回顾）</button>`}
+  </div>`;
+}
+function nextThemeCard(){
+  const act=activeThemes();
+  const avail=Object.keys(THEMES).filter(k=>!act.has(k));
+  if(!avail.length) return '';
+  return `<div class="c-card">
+    <p class="c-kicker">再开一关（可选 · 免费）</p>
+    <p style="font-size:13px;color:var(--ink2)">一关一个小习惯，同时最多三关。想加就加，不想加完全不用。</p>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${avail.map(k=>`<button class="cbtn sec" style="width:auto;padding:9px 14px;margin:0;font-size:13.5px;box-shadow:none" onclick="pickTheme('${k}')"><span style="display:inline-flex;vertical-align:-4px;margin-right:5px">${ICN(k,'g',17)}</span>${themeOf(k).name}</button>`).join('')}
+    </div></div>`;
+}
+function checkin(i,tag,day){
+  const c=S.camps[i]; if(!c) return;
+  const raw=campDay(c);
+  if(raw>21||raw<1) return;                              /* 营期外或开营日不打正卡 */
+  const cur=raw;
   day=(day===undefined)?cur:day;
   if(day<1||day>21) return;
   const isMakeup=(day===cur-1);
   if(day!==cur&&!isMakeup) return;                       /* 只能打今天，或补昨天 */
-  if(S.camp.checkins[day]) return;
-  if(isMakeup){ if(S.camp.makeupUsed[day])return; S.camp.makeupUsed[day]=true; }
-  S.camp.checkins[day]={tag,makeup:isMakeup}; save();
-  track('checkin',{day,tag,makeup:isMakeup});
+  if(c.checkins[day]) return;
+  if(isMakeup){ if(c.makeupUsed[day])return; c.makeupUsed[day]=true; }
+  c.checkins[day]={tag,makeup:isMakeup};
+  /* 完营判定：D1–D21 全有记录才成立，只触发一次 */
+  if(checkedTo21(c)>=21&&!c.completed){ c.completed=true; c.completedAt=todayStr(); track('camp_complete',{theme:c.theme,campId:c.campId}); }
+  save();
+  track('checkin',{theme:c.theme,campId:c.campId,day,tag,makeup:isMakeup});
   render();
-  const n=$('#streakN'); if(n){n.classList.add('bump');}
   const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
-  const zone=$('#quotezone');
+  const zone=$('#quotezone-'+i);
   if(zone) zone.innerHTML=`<div class="quote-pop">「${q}」<small>—— 明日内容已解锁</small></div>`;
   if(day===1&&!isMakeup) setTimeout(()=>openModal(`
     <h3 style="font-family:var(--serif);font-size:20px;display:flex;align-items:center;gap:8px">${ICN('spark','g',22)} 第一天，成了</h3>
     <p style="margin-top:10px;font-size:14px;color:inherit;opacity:.85">给你留了一条欢迎语音：</p>
     <div class="script-card" style="background:var(--paper2);border:1px dashed var(--line2);color:var(--ink)"><span style="display:inline-flex;vertical-align:-4px;margin-right:4px">${ICN('sound','',16)}</span>「21 天很短，就做一件小事。我陪你。」<br><span style="font-size:11px;opacity:.7">（内测版为文字，正式版为营主真人语音）</span></div>
     <button class="cbtn" style="margin-top:14px" onclick="closeModal()">收下了</button>`),650);
-  /* 完营判定：D1–D21 全部有记录才成立，且只触发一次 */
-  if(checkedDaysUpTo21()>=21&&!S.camp.completed){ S.camp.completed=true; S.camp.completedAt=todayStr(); save(); track('camp_complete'); }
+  /* 今日全勤（多关时的加强反馈，一天最多庆祝一次） */
+  const started=activeCamps().filter(x=>campDay(x.c)>=1);
+  if(started.length>1&&started.every(x=>doneToday(x.c))&&S.lastPerfect!==todayStr()){
+    S.lastPerfect=todayStr(); save(); track('perfect_day',{n:started.length});
+    setTimeout(()=>toast('今日全勤！'+started.length+' 关全部完成'),900);
+  }
 }
-function milestoneHTML(){
-  const days=checkedDays();
+function milestoneHTML(c,i){
+  const days=checkedDaysC(c);
   const ms=[[3,'sprout','三天，你已赢过一半人','很多人第 3 天就散了，你还在。'],[7,'leaf','一周达成','第一周是最难的一段，你走完了。'],[21,'medal','21 天完营','你亲手把「时间」填进了那道公式。']];
   const hit=ms.find(([n])=>days===n);
   if(!hit)return '';
-  const [n,ic,tt,pp]=hit;
-  return `<div class="milestone"><div class="ic">${ICN(ic,'g',38)}</div><h4>${tt}</h4><p>${pp}</p>
-    ${n===21?`<button class="cbtn" style="margin-top:12px" onclick="showCert()">领取《21 天打卡完成凭证》</button>`:''}
-    <button class="cbtn ${n===21?'sec':''}" style="margin-top:10px" onclick="openShare('companion')">生成同行卡，给在乎的人留个位（可跳过）</button>
+  const [n,ik,tt,pp]=hit;
+  return `<div class="milestone" style="margin-top:12px"><div class="ic">${ICN(ik,'g',38)}</div><h4>${tt}</h4><p>${pp}</p>
+    ${n===21?`<button class="cbtn" style="margin-top:12px" onclick="showCert(${i})">领取《21 天打卡完成凭证》</button>`:''}
+    <button class="cbtn ${n===21?'sec':''}" style="margin-top:10px" onclick="openShare('companion',${i})">生成同行卡，给在乎的人留个位（可跳过）</button>
   </div>`;
 }
+/* 私有感受：按日期记（一天一页，跨营共用） */
+function feelToday(){ const d=todayStr(); if(!S.priv.feel[d])S.priv.feel[d]={tags:[],text:''}; return S.priv.feel[d]; }
 function feelBlockHTML(){
-  const d=Math.min(todayIdx(),21), tags=S.priv.feelTags[d]||[];
+  const f=S.priv.feel[todayStr()]||{tags:[],text:''};
   return `<div class="c-card">
     <p class="c-kicker">我的个人感受记录（可跳过）</p>
     <div class="lock-line">${ICN('lock','g',18)}<span>仅你自己可见。这结论只有你自己知道，不用发群、不用告诉营主。产品里没有把它交出去的开关。</span></div>
     <div class="feel-tags">
-      ${['更清醒','没那么累','上厕所更规律','说不清'].map(x=>`<button class="${tags.includes(x)?'on':''}" onclick="feelTag('${x}')">${x}</button>`).join('')}
+      ${['更清醒','没那么累','上厕所更规律','说不清'].map(x=>`<button class="${f.tags.includes(x)?'on':''}" onclick="feelTag('${x}')">${x}</button>`).join('')}
     </div>
-    <textarea class="feel-input" id="feeltext" placeholder="想写点什么就写，不写也完全可以">${esc(S.priv.feelText[d]||'')}</textarea>
+    <textarea class="feel-input" id="feeltext" placeholder="想写点什么就写，不写也完全可以">${esc(f.text||'')}</textarea>
     <div id="feelblocked"></div>
     <button class="cbtn ghost" onclick="saveFeel()">存给自己</button>
   </div>`;
 }
 function feelTag(x){
-  const d=Math.min(todayIdx(),21); const arr=S.priv.feelTags[d]||(S.priv.feelTags[d]=[]);
-  const i=arr.indexOf(x); i>=0?arr.splice(i,1):arr.push(x); save();render();
+  const f=feelToday(); const j=f.tags.indexOf(x); j>=0?f.tags.splice(j,1):f.tags.push(x); save();render();
 }
 function saveFeel(){
-  const d=Math.min(todayIdx(),21), v=$('#feeltext').value;
+  const v=$('#feeltext').value;
   if(therapyBlock(v)){ $('#feelblocked').innerHTML=`<div class="result-blocked">${COLD_SCRIPT}<br><span style="font-size:11px;opacity:.8">咱这营只记录坚持，不做疗效记录——这类词存不进去。</span></div>`; return; }
-  S.priv.feelText[d]=v; save(); track('feel_saved'); toast('已存好，只有你看得见');
+  feelToday().text=v; save(); track('feel_saved'); toast('已存好，只有你看得见');
 }
 
-/* ---------- 地图 tab ---------- */
+/* ---------- 地图 tab（分营详录 · 格子可点） ---------- */
 function renderMap(){
-  const c=S.camp,d=Math.min(todayIdx(),21),days=checkedDays();
+  const started=activeCamps().filter(x=>campDay(x.c)>=1);
+  const doneCnt=started.filter(x=>doneToday(x.c)).length;
+  const total=S.camps.reduce((a,c)=>a+checkedDaysC(c),0);
   VC.innerHTML=`
-    <h2 style="font-family:var(--serif);font-size:22px;margin-top:12px">我的 21 天${themeOf(c.theme).name.replace('营','')}地图</h2>
-    <p class="small-note">每一格都是你亲手点亮的。${Object.values(c.checkins).some(x=>x.makeup)?'（虚线格为补卡）':''}</p>
+    <h2 style="font-family:var(--serif);font-size:22px;margin-top:12px">我的习惯地图</h2>
+    <div class="c-card" style="display:flex;text-align:center;padding:14px 6px">
+      <div style="flex:1"><b class="num" style="font-family:var(--serif);font-size:24px;color:var(--green-d)">${activeCamps().length}</b><p class="small-note" style="margin-top:2px">进行中的关</p></div>
+      <div style="flex:1;border-left:1px dashed var(--line);border-right:1px dashed var(--line)"><b class="num" style="font-family:var(--serif);font-size:24px;color:var(--green-d)">${total}</b><p class="small-note" style="margin-top:2px">累计打卡</p></div>
+      <div style="flex:1"><b class="num" style="font-family:var(--serif);font-size:24px;color:var(--green-d)">${doneCnt}<span style="font-size:14px;color:var(--ink3)">/${started.length}</span></b><p class="small-note" style="margin-top:2px">今日完成</p></div>
+    </div>
+    ${S.camps.map((c,i)=>campMapCard(c,i)).join('')}
+    ${footNote()}`;
+}
+function campMapCard(c,i){
+  const t=themeOf(c.theme), raw=campDay(c), d=Math.min(raw,21), days=checkedDaysC(c), st=streakC(c), over=raw>21;
+  return `
+  <div class="c-card">
+    <div style="display:flex;align-items:center;gap:9px">
+      ${ICN(c.theme,'g',20)}<b style="font-family:var(--serif);font-size:16.5px">${t.name}</b>
+      <span class="small-note" style="margin:0 0 0 auto">${over?`已走完 · 共 ${days} 天`:`第 ${d}/21 天 · 连续 ${st} 天`}</span>
+    </div>
+    <p class="small-note" style="margin-top:6px">${esc(c.joinDate||'')} 开营 · 点格子可看当天记录${Object.values(c.checkins).some(x=>x.makeup)?'（虚线格为补卡）':''}</p>
     <div class="map21">
-      ${Array.from({length:21},(_,i)=>{const day=i+1,ck=c.checkins[day];
-        return `<div class="cell ${ck?'hit':''} ${ck&&ck.makeup?'sim':''} ${day===d?'today':''}"><span class="d num">${day}</span>${ck?(ck.makeup?'<span class="cdot ho"></span>':'<span class="cdot"></span>'):''}</div>`;}).join('')}
+      ${Array.from({length:21},(_,j)=>{const day=j+1,ck=c.checkins[day];
+        return `<div class="cell ${ck?'hit':''} ${ck&&ck.makeup?'sim':''} ${(!over&&day===d)?'today':''}" onclick="cellInfo(${i},${day})"><span class="d num">${day}</span>${ck?'<span class="cdot'+(ck.makeup?' ho':'')+'"></span>':''}</div>`;}).join('')}
     </div>
     <div class="badge-row">
       ${[[3,'叁','Day3 赢过一半人'],[7,'柒','一周达成'],[21,'廿一','完营']].map(([n,ch,lab])=>`
       <div class="badge ${days>=n?'lit':''}"><div class="kchar">${ch}</div><p>${lab}</p></div>`).join('')}
     </div>
-    ${days>=3?`<button class="cbtn sec" style="margin-top:16px" onclick="openShare('poster')">生成给家人的成长海报（可跳过）</button>`:''}
-    ${days>=21?`<button class="cbtn" style="margin-top:10px" onclick="showCert()">查看《21 天打卡完成凭证》</button>`:''}
-    ${footNote()}`;
+    ${days>=3?`<button class="cbtn sec" style="margin-top:14px" onclick="openShare('poster',${i})">生成给家人的成长海报（可跳过）</button>`:''}
+    ${days>=21?`<button class="cbtn" style="margin-top:10px" onclick="showCert(${i})">查看《21 天打卡完成凭证》</button>`:''}
+  </div>`;
+}
+function cellInfo(i,day){
+  const c=S.camps[i]; if(!c)return;
+  const ck=c.checkins[day];
+  const date=(c.joinDate&&/^\d{4}-\d{2}-\d{2}$/.test(c.joinDate))?dateAdd(c.joinDate,day):'';
+  if(ck) toast(`D${day} · ${date} · ${tagLabel(ck.tag)}打卡${ck.makeup?'（补卡）':''}`);
+  else toast(`D${day} · ${date} · ${campDay(c)>=day?'这天没打卡':'还没到这一天'}`);
 }
 
 /* ---------- 我的 tab ---------- */
 function renderMe(){
-  const days=checkedDays(), t=todayIdx();
+  const anyOver21=S.camps.some(c=>checkedDaysC(c)>=21);
+  const anyEnded=S.camps.some(c=>campDay(c)>21);
   VC.innerHTML=`
     <h2 style="font-family:var(--serif);font-size:22px;margin-top:12px">我的</h2>
 
@@ -1120,11 +1219,16 @@ function renderMe(){
     <div class="c-card">
       <p class="c-kicker">数据授权 · 随时可撤回</p>
       ${authSwitchesHTML()}
-      ${S.auth.behavior?(todayIdx()>21?`
-      <p class="small-note" style="margin-top:10px"><b>本营 21 天已结束，记录码通道已自动关闭。</b>结营前生成过的码不受影响。</p>`:`
-      <button class="cbtn" style="margin-top:12px" onclick="showAuthCode()">生成「行为记录码」发给营主</button>`)+`
+      ${S.auth.behavior?`
+      <p class="small-note" style="margin-top:12px"><b>按营生成「行为记录码」</b>——一营一码，发给对应的营主：</p>
+      ${S.camps.map((c,i)=>{const over=campDay(c)>21;return `
+      <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px dashed var(--line)">
+        ${ICN(c.theme,'g',18)}
+        <div style="flex:1;font-size:13px"><b>${themeOf(c.theme).name}</b><br><span class="small-note num">营 ${esc(c.campId)} · ${over?'已结营':`第 ${Math.min(campDay(c),21)}/21 天`}</span></div>
+        ${over?`<span class="small-note">通道已关闭</span>`:`<button class="cbtn sec" style="width:auto;padding:8px 13px;margin:0;font-size:13px;box-shadow:none" onclick="showAuthCode(${i})">生成记录码</button>`}
+      </div>`;}).join('')}
       <p class="small-note">码里只有：营编号、成员编号、你的称呼、打卡日期与天数。分数、雷达、感受在码的结构里<b>不存在</b>。</p>`:`
-      <p class="small-note">开启上面的开关后，才能生成发给营主的「行为记录码」。不开也能正常玩。</p>`}
+      <p class="small-note">开启上面的开关后，才能按营生成发给营主的「行为记录码」。不开也能正常玩。</p>`}
       ${S.auth.log.length?`<details class="edu-card" style="margin-top:10px"><summary>操作记录（${S.auth.log.length}）</summary><div class="body">${S.auth.log.map(l=>`<div class="num" style="font-size:11.5px">${l.t.slice(0,19).replace('T',' ')} · ${l.act==='auth_grant'?'开启':'撤回'}「${l.scope}」</div>`).join('')}</div></details>`:''}
     </div>
 
@@ -1140,11 +1244,16 @@ function renderMe(){
       <p class="small-note">对照仅供自我记录，受当日状态和填写影响，不代表疾病风险下降、诊断或疗效。</p>
     </div>
 
-    ${(days>=21||t>21)?`
+    ${(anyOver21||anyEnded)?`
     <div class="c-card">
       <p class="c-kicker">结营</p>
-      ${days>=21?`<button class="cbtn" onclick="showCert()">《21 天打卡完成凭证》</button>`:''}
-      <button class="cbtn sec" style="margin-top:10px" onclick="showReview()">我的 21 天（私有回顾）</button>
+      ${S.camps.map((c,i)=>{const days=checkedDaysC(c);const over=campDay(c)>21;
+        if(!(days>=21||over))return '';
+        return `<div style="display:flex;align-items:center;gap:9px;padding:8px 0">
+          ${ICN(c.theme,'g',18)}<span style="flex:1;font-size:13.5px"><b>${themeOf(c.theme).name}</b> · ${days} 天</span>
+          ${days>=21?`<button class="cbtn" style="width:auto;padding:8px 13px;margin:0;font-size:13px" onclick="showCert(${i})">凭证</button>`:''}
+          <button class="cbtn sec" style="width:auto;padding:8px 13px;margin:0;font-size:13px;box-shadow:none" onclick="showReview(${i})">私有回顾</button>
+        </div>`;}).join('')}
     </div>`:''}
 
     <div class="c-card">
@@ -1159,31 +1268,32 @@ function saveNick(){
   if(v&&!validatePublicText(v)){ toast('这个称呼里有不能对外的词，换一个吧'); return; }
   S.nick=v; save(); toast('记住了');
 }
-/* 行为记录码：白名单字段，结构上不存在分数/雷达/感受（工程锁） */
-function makeAuthCode(){
+/* 行为记录码：一营一码；白名单字段，结构上不存在分数/雷达/感受（工程锁） */
+function makeAuthCode(i){
+  const c=S.camps[i];
   if(!S.auth.behavior) return {ok:false,reason:'行为授权未开启'};
-  if(!S.camp.joined||!S.camp.mid) return {ok:false,reason:'还没有入营'};
-  if(todayIdx()>21) return {ok:false,reason:'本营 21 天已结束，授权随营期自动失效'};
+  if(!c||!c.mid) return {ok:false,reason:'还没有入营'};
+  if(campDay(c)>21) return {ok:false,reason:'该营 21 天已结束，授权随营期自动失效'};
   const nick=validatePublicText(S.nick)?(S.nick||'').slice(0,12):'';
-  const payload={v:1,campId:(S.camp.campId||'pilot').slice(0,32),mid:S.camp.mid,nick,
-    days:Object.keys(S.camp.checkins).map(Number).filter(n=>n>=1&&n<=21).sort((a,b)=>a-b),
-    streak:streakNow(),updatedAt:todayStr()};
+  const payload={v:1,campId:(c.campId||'pilot').slice(0,32),mid:c.mid,nick,
+    days:Object.keys(c.checkins).map(Number).filter(n=>n>=1&&n<=21).sort((a,b)=>a-b),
+    streak:streakC(c),updatedAt:todayStr()};
   return {ok:true,code:'XSJ1.'+btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 }
-function showAuthCode(){
-  const res=makeAuthCode();
+function showAuthCode(i){
+  const res=makeAuthCode(i);
   if(!res.ok){ toast(res.reason); render(); return; }
-  const code=res.code;
-  track('authcode_gen',{days:Object.keys(S.camp.checkins).filter(k=>+k>=1).length,campId:S.camp.campId,mid:S.camp.mid});
+  const c=S.camps[i];
+  track('authcode_gen',{theme:c.theme,campId:c.campId,mid:c.mid,days:checkedDaysC(c)});
   openModal(`
-    <h3 style="font-size:18px">行为记录码</h3>
-    <p style="font-size:13px;opacity:.8;margin-top:8px">点击下框全选 → 复制 → 微信发给你的营主。想撤回时，关掉授权开关并告诉营主删除即可。</p>
-    <textarea class="feel-input" readonly style="min-height:110px;font-family:var(--mono);font-size:11px;word-break:break-all" onclick="this.select()">${esc(code)}</textarea>
+    <h3 style="font-size:18px">行为记录码 · ${themeOf(c.theme).name}</h3>
+    <p style="font-size:13px;opacity:.8;margin-top:8px">点击下框全选 → 复制 → 微信发给<b>这个营</b>的营主。想撤回时，关掉授权开关并告诉营主删除即可。</p>
+    <textarea class="feel-input" readonly style="min-height:110px;font-family:var(--mono);font-size:11px;word-break:break-all" onclick="this.select()">${esc(res.code)}</textarea>
     <button class="cbtn" style="margin-top:12px" onclick="closeModal()">收起</button>`);
 }
 function complain(){
   openModal(`<h3 style="font-size:18px">投诉 / 举报</h3>
-    <p style="font-size:13px;opacity:.8;margin-top:8px">告诉平台发生了什么（演示表单，正式版直达平台审计后台，不经过营主）：</p>
+    <p style="font-size:13px;opacity:.8;margin-top:8px">告诉平台发生了什么（内测版留痕在本机，正式版直达平台审计后台，不经过营主）：</p>
     <textarea class="feel-input" id="cmptext" placeholder="例如：营里有人承诺疗效 / 被推销了……"></textarea>
     <button class="cbtn" style="margin-top:12px" onclick="submitComplain()">提交</button>`);
 }
@@ -1191,14 +1301,16 @@ function submitComplain(){
   const v=($('#cmptext').value||'').trim();
   if(!v){ toast('写一句发生了什么再提交'); return; }
   S.complaintsList.push({t:new Date().toISOString(),text:v}); save();
-  track('complaint_submit');   /* 事件只记发生，内容留在本机留痕（正式版直达平台审计后台） */
+  track('complaint_submit');
   closeModal(); toast('已提交并留痕（共 '+S.complaintsList.length+' 条）');
 }
 
-/* ---------- S7 结营凭证 / 私有回顾 ---------- */
-function showCert(){
-  const c=S.camp,days=checkedDays();
-  let longest=0,cur=0; for(let i=1;i<=21;i++){cur=c.checkins[i]?cur+1:0;longest=Math.max(longest,cur);}
+/* ---------- S7 结营凭证 / 私有回顾（按营） ---------- */
+function witnessKey(c){ return (c.campId||'pilot')+'|'+(c.theme||'water'); }
+function showCert(i){
+  const c=S.camps[i]; if(!c)return;
+  const days=checkedDaysC(c);
+  let longest=0,cur=0; for(let j=1;j<=21;j++){cur=c.checkins[j]?cur+1:0;longest=Math.max(longest,cur);}
   openModal(`
     <div class="cert">
       <p class="k">21 天打卡完成凭证</p>
@@ -1212,30 +1324,30 @@ function showCert(){
     <p class="small-note" style="margin-top:12px">想继续练下一关、或想系统学健康观念的，可以私信营主「继续」，会收到一份通用介绍，不勉强。</p>
     <button class="cbtn" style="margin-top:12px" onclick="closeModal()">收好了</button>`);
 }
-function showReview(){
-  const days=checkedDays();
-  const feelSet=new Set([
-    ...Object.keys(S.priv.feelTags).filter(k=>(S.priv.feelTags[k]||[]).length),
-    ...Object.keys(S.priv.feelText).filter(k=>(S.priv.feelText[k]||'').trim()),
-  ]);
+function showReview(i){
+  const c=S.camps[i]; if(!c)return;
+  const days=checkedDaysC(c);
+  let feelDays=0;
+  if(c.joinDate&&/^\d{4}-\d{2}-\d{2}$/.test(c.joinDate)){
+    for(let j=1;j<=21;j++){ const f=S.priv.feel[dateAdd(c.joinDate,j)]; if(f&&((f.tags&&f.tags.length)||(f.text&&f.text.trim()))) feelDays++; }
+  }
   openModal(`
-    <h3 style="font-family:var(--serif);font-size:20px;display:flex;align-items:center;gap:8px">${ICN('lock','g',20)} 我的 21 天（仅本人）</h3>
-    <p style="margin-top:10px;font-size:14px">打卡 <b class="num">${days}</b> 天 · 给自己写过 <b class="num">${feelSet.size}</b> 天感受</p>
-    <div class="mini-map feelmap" style="margin-left:0">${Array.from({length:21},(_,i)=>`<i class="${feelSet.has(String(i+1))?'hit':''}"></i>`).join('')}</div>
-    <p class="small-note">上面是你给自己写过感受的日子（仅本人可见的自我记录）。</p>
-    <p style="font-size:13px;opacity:.8;margin-top:12px">21 天前，我以为一件小事没用。21 天后，我最想说的一句是：</p>
-    <textarea class="feel-input" id="witnesstext" placeholder="原来我真的能坚持一件小事">${esc(S.priv.witness)}</textarea>
+    <h3 style="font-family:var(--serif);font-size:20px;display:flex;align-items:center;gap:8px">${ICN('lock','g',20)} 我的 21 天 · ${themeOf(c.theme).name}（仅本人）</h3>
+    <p style="margin-top:10px;font-size:14px">打卡 <b class="num">${days}</b> 天 · 给自己写过 <b class="num">${feelDays}</b> 天感受</p>
+    <p style="font-size:13px;opacity:.8;margin-top:8px">21 天前，我以为一件小事没用。21 天后，我最想说的一句是：</p>
+    <textarea class="feel-input" id="witnesstext" placeholder="原来我真的能坚持一件小事">${esc(S.priv.witness[witnessKey(c)]||'')}</textarea>
     <div id="witnessblocked"></div>
     <p class="small-note">这句话只存在你自己手机里，不会被引导发到任何群。</p>
-    <button class="cbtn" style="margin-top:12px" onclick="saveWitness()">存给自己</button>`);
+    <button class="cbtn" style="margin-top:12px" onclick="saveWitness(${i})">存给自己</button>`);
 }
-function saveWitness(){
+function saveWitness(i){
+  const c=S.camps[i]; if(!c)return;
   const v=$('#witnesstext').value;
   if(therapyBlock(v)){ $('#witnessblocked').innerHTML=`<div class="result-blocked">${COLD_SCRIPT}<br><span style="font-size:11px;opacity:.8">这句里有疗效词，存不进去——坚持可以夸，疗效不能记。</span></div>`; return; }
-  S.priv.witness=v; save(); closeModal(); toast('存好了，只属于你');
+  S.priv.witness[witnessKey(c)]=v; save(); closeModal(); toast('存好了，只属于你');
 }
 
-/* ---------- S8 公开分享卡（白名单） ---------- */
+/* ---------- S8 公开分享卡（白名单，按营） ---------- */
 function copyShare(){
   const cap=document.querySelector('#caplist input:checked');
   const text=(cap?cap.closest('label').textContent.trim():'')+'\n'+makeInviteLink();
@@ -1248,10 +1360,16 @@ function fallbackCopy(t){
   try{document.execCommand('copy');}catch(e){}
   ta.remove();
 }
-function openShare(type){
-  const days=checkedDays(), st=streakNow();
-  const mapTags=Object.fromEntries(Object.entries(S.camp.checkins).map(([k,v])=>[k,v.tag]));
-  const payload = type==='selfcheck' ? {type,date:todayStr()} : {type,dayN:days,streak:st,mapTags,theme:S.camp.theme||'water'};
+function openShare(type,ci){
+  let c=null;
+  if(type!=='selfcheck'){
+    if(ci===undefined){ const a=activeCamps(); ci=a.length?a[0].i:(S.camps.length?0:undefined); }
+    c=(ci!==undefined)?S.camps[ci]:null;
+    if(!c) type='selfcheck';
+  }
+  const days=c?checkedDaysC(c):0, st=c?streakC(c):0;
+  const mapTags=c?Object.fromEntries(Object.entries(c.checkins).map(([k,v])=>[k,v.tag])):{};
+  const payload = type==='selfcheck' ? {type,date:todayStr()} : {type,dayN:days,streak:st,mapTags,theme:(c&&c.theme)||'water'};
   const res=renderShareCard(payload);
   if(!res.ok){toast(res.reason);return;}
   track('share_card_gen',{type});
@@ -1260,10 +1378,10 @@ function openShare(type){
     ${res.html}
     <p class="c-kicker" style="margin-top:16px">配句话（四选一，不可改）</p>
     <div class="cap-list" id="caplist">
-      ${CAPTIONS.map((c,i)=>`<label class="${i===0?'on':''}"><input type="radio" name="cap" ${i===0?'checked':''} onchange="[...document.querySelectorAll('#caplist label')].forEach((l,j)=>l.classList.toggle('on',j===${i}))"><span>${esc(c.replace('{N}',String(days||1)))}</span></label>`).join('')}
+      ${CAPTIONS.map((cc,i)=>`<label class="${i===0?'on':''}"><input type="radio" name="cap" ${i===0?'checked':''} onchange="[...document.querySelectorAll('#caplist label')].forEach((l,j)=>l.classList.toggle('on',j===${i}))"><span>${esc(cc.replace('{N}',String(days||1)))}</span></label>`).join('')}
     </div>
     <button class="cbtn" style="margin-top:14px" onclick="copyShare()">复制邀请话术和链接</button>
-    <p class="small-note" style="text-align:center">链接：${makeInviteLink().replace('https://','')}</p>
+    <p class="small-note" style="text-align:center">链接：${makeInviteLink().replace('https://','').replace('http://','')}</p>
     <button class="cbtn ghost" onclick="closeModal()">这次先不发</button>`);
 }
 
