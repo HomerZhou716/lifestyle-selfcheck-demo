@@ -133,12 +133,18 @@ body[data-role="b"] #honest{background:#101720;color:#8fa0b3;border-bottom:1px s
 @keyframes pop{50%{transform:scaleY(1.7)}}
 .rainbow-lab{display:flex;gap:4px;margin-top:4px}
 .rainbow-lab span{flex:1;text-align:center;font-size:11px;opacity:.75}
-.q-num{font-size:12px;color:var(--ink3);font-weight:700;margin-top:20px}
-.q-text{font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.4;margin-top:6px;min-height:64px}
-.q-opts{display:flex;flex-direction:column;gap:10px;margin-top:18px}
-.q-opt{background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:13px 15px;
-  font-size:15px;text-align:left;transition:transform .06s,border-color .15s,background .15s;line-height:1.45}
-.q-opt:active{transform:scale(.97);border-color:var(--green);background:var(--green-wash)}
+.q-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:18px}
+.q-kicker{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:700;color:var(--green-d);
+  background:var(--green-wash);padding:5px 12px;border-radius:999px}
+.q-num{font-size:13px;color:var(--ink3);font-weight:700}
+.q-text{font-family:var(--serif);font-size:clamp(24px,6.4vw,31px);font-weight:600;line-height:1.32;margin-top:12px}
+.q-opts{display:flex;flex-direction:column;gap:12px;margin-top:24px}
+.q-opt{display:flex;align-items:center;gap:14px;background:var(--card);border:2px solid var(--line);border-radius:16px;
+  padding:18px;font-size:17.5px;font-weight:600;color:var(--ink);text-align:left;line-height:1.4;min-height:62px;
+  transition:transform .06s,border-color .15s,background .15s;box-shadow:var(--shadow-sm)}
+.q-opt .rad{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--line2);transition:all .15s}
+.q-opt:active{transform:scale(.98);border-color:var(--green);background:var(--green-wash)}
+.q-opt:active .rad{border-color:var(--green);background:var(--green);box-shadow:inset 0 0 0 4px var(--card)}
 .quiz-slide{animation:slidein .22s ease}
 @keyframes slidein{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
 .dim-pass{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(247,243,234,.94);animation:fadein .2s}
@@ -942,10 +948,13 @@ function renderQuiz(){
     <div class="rainbow">${DIMS.map(d=>`<div class="seg ${per[d.key]===3?'done':''}"><i style="background:${d.color};width:${per[d.key]/3*100}%"></i></div>`).join('')}</div>
     <div class="rainbow-lab">${DIMS.map(d=>`<span>${ICN(d.key,'',15)}</span>`).join('')}</div>
     <div class="quiz-slide" id="quizslide">
-      <p class="q-num num">第 ${idx+1} / 18 题</p>
+      <div class="q-head">
+        <span class="q-kicker">${ICN(q.dim,'g',16)}${esc((DIMS.find(d=>d.key===q.dim)||{}).name||'')}</span>
+        <span class="q-num num">第 ${idx+1} / 18 题</span>
+      </div>
       <h2 class="q-text">${esc(q.q)}</h2>
       <div class="q-opts">
-        ${q.opts.map((o,i)=>`<button class="q-opt" onclick="answer(${i})">${esc(o[0])}</button>`).join('')}
+        ${q.opts.map((o,i)=>`<button class="q-opt" onclick="answer(${i})"><span class="rad"></span><span>${esc(o[0])}</span></button>`).join('')}
       </div>
     </div>`;
 }
