@@ -140,10 +140,10 @@ body[data-role="b"] #honest{background:#101720;color:#8fa0b3;border-bottom:1px s
 .q-text{font-family:var(--serif);font-size:clamp(32px,11vw,48px);font-weight:600;line-height:1.26;margin-top:14px;letter-spacing:.01em}
 .q-text .qhl{font-style:normal;color:var(--green)}
 .q-opts{display:flex;flex-direction:column;gap:12px;margin-top:24px}
-.q-opt{display:flex;align-items:center;gap:14px;background:var(--card);border:2px solid var(--line);border-radius:16px;
-  padding:18px;font-size:17.5px;font-weight:600;color:var(--ink);text-align:left;line-height:1.4;min-height:62px;
+.q-opt{display:flex;align-items:center;gap:14px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;
+  padding:17px 18px;font-size:17px;font-weight:400;color:var(--ink);text-align:left;line-height:1.4;min-height:60px;letter-spacing:.02em;
   transition:transform .06s,border-color .15s,background .15s;box-shadow:var(--shadow-sm)}
-.q-opt .rad{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--line2);transition:all .15s}
+.q-opt .rad{flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line2);transition:all .15s}
 .q-opt:active{transform:scale(.98);border-color:var(--green);background:var(--green-wash)}
 .q-opt:active .rad{border-color:var(--green);background:var(--green);box-shadow:inset 0 0 0 4px var(--card)}
 .quiz-slide{animation:slidein .22s ease}
@@ -1380,6 +1380,7 @@ function campMapCard(c,i){
     </div>
     ${days>=3?`<button class="cbtn sec" style="margin-top:14px" onclick="openShare('poster',${i})">生成给家人的成长海报（可跳过）</button>`:''}
     ${days>=21?`<button class="cbtn" style="margin-top:10px" onclick="showCert(${i})">查看《21 天打卡完成凭证》</button>`:''}
+    <button class="cbtn ghost" style="margin-top:8px;color:var(--ink3);font-size:13.5px" onclick="quitCamp(${i})">退出这一关</button>
   </div>`;
 }
 function cellInfo(i,day){
