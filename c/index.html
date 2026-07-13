@@ -1406,6 +1406,14 @@ function renderMe(){
     </div>
 
     <div class="c-card">
+      <p class="c-kicker">我的自检</p>
+      ${S.selfcheck.done&&S.selfcheck.scores
+        ? `<button class="cbtn sec" onclick="S.cstage='report';save();render()">回看我的报告</button>
+      <button class="cbtn ghost" style="margin-top:8px" onclick="restartQuiz()">重新做一次自检</button>`
+        : `<button class="cbtn sec" onclick="restartQuiz()">去做生活方式自检</button>`}
+    </div>
+
+    <div class="c-card">
       <p class="c-kicker">我的营</p>
       ${S.camps.map((c,i)=>{const over=campDay(c)>21;const d=Math.min(campDay(c),21);return `
       <div style="display:flex;align-items:center;gap:9px;padding:11px 0;border-top:1px dashed var(--line)">
