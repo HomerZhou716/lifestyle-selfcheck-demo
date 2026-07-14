@@ -916,11 +916,10 @@ function renderC(){
   fn();
   renderCTabs();
 }
-/* 底部菜单栏：只要有营就常驻在所有页面；点任一 tab 跳回营内对应页 */
+/* 底部菜单栏：全程常驻（含首次自检、无营时）；点 tab 进营内对应页，无营则显示空态 */
 function renderCTabs(){
-  const bar=$('#ctabbar'), show=S.camps.length>0;
-  bar.classList.toggle('hide',!show);
-  if(!show){ bar.innerHTML=''; return; }
+  const bar=$('#ctabbar');
+  bar.classList.remove('hide');
   const active=(S.cstage==='camp')?S.ctab:'';
   bar.innerHTML=[['today','今日'],['map','地图'],['me','我的']]
     .map(([k,lab])=>`<button class="${active===k?'on':''}" onclick="S.cstage='camp';S.ctab='${k}';save();render()">${ICN(k,active===k?'g':'',23)}${lab}</button>`).join('');
@@ -1213,11 +1212,35 @@ function doneToday(c){ const d=Math.min(campDay(c),21); return d>=1&&!!c.checkin
 
 /* ---------- S6 营内（今日 / 地图 / 我的） ---------- */
 function renderCamp(){
-  if(!S.camps.length){
-    S.cstage=S.draft?'join':(S.selfcheck.done?'match':'welcome');
-    save(); render(); return;
-  }
-  ({today:renderToday,map:renderMap,me:renderMe})[S.ctab]();
+  /* 无营时不再跳回 onboarding：三个 tab 各自显示空态，底部栏保持常驻可点 */
+  ({today:renderToday,map:renderMap,me:renderMe})[S.ctab||'today']();
+}
+/* 无营空态：今日 / 地图各给一个引导入口 */
+function emptyCTA(){
+  return S.selfcheck.done
+    ? `<button class="cbtn" style="margin-top:18px" onclick="S.cstage='match';save();render()">选一个习惯营 →</button>`
+    : `<button class="cbtn" style="margin-top:18px" onclick="startQuiz()">先做个 5 分钟自检 →</button>`;
+}
+function renderEmptyToday(){
+  VC.innerHTML=`
+    <div class="c-card" style="text-align:center;padding:34px 18px">
+      <div style="display:flex;justify-content:center">${ICN('leaf','g',42)}</div>
+      <h3 class="lead" style="margin-top:10px">还没有加入训练营</h3>
+      <p style="color:var(--ink2);font-size:14.5px;margin-top:8px">选一个想养成的小习惯，每天 5 秒打卡，就从今天开始。</p>
+      ${emptyCTA()}
+    </div>
+    ${S.selfcheck.done?`<button class="cbtn ghost" style="margin-top:10px" onclick="S.cstage='report';save();render()">回看我的报告</button>`:''}
+    ${footNote()}`;
+}
+function renderEmptyMap(){
+  VC.innerHTML=`
+    <h2 style="font-family:var(--serif);font-size:22px;margin-top:12px">我的习惯地图</h2>
+    <div class="c-card" style="text-align:center;padding:34px 18px">
+      <div style="display:flex;justify-content:center">${ICN('map','g',42)}</div>
+      <p style="color:var(--ink2);font-size:14.5px;margin-top:12px">你的打卡地图会出现在这里。<br>先选一关，点亮第一格。</p>
+      ${emptyCTA()}
+    </div>
+    ${footNote()}`;
 }
 function themeOf(k){ return THEMES[k||'water']; }
 function contentCard(c){
@@ -1230,6 +1253,7 @@ function contentCard(c){
     <p class="small-note" style="margin-top:8px">今天的动作：<b>${esc(t.act)}</b>，然后回来点一下。</p></div>`;
 }
 function renderToday(){
+  if(!S.camps.length) return renderEmptyToday();
   const started=activeCamps().filter(x=>campDay(x.c)>=1);
   const day0s=activeCamps().filter(x=>campDay(x.c)===0);
   const overs=S.camps.map((c,i)=>({c,i})).filter(x=>campDay(x.c)>21);
@@ -1354,6 +1378,7 @@ function saveFeel(){
 
 /* ---------- 地图 tab（分营详录 · 格子可点） ---------- */
 function renderMap(){
+  if(!S.camps.length) return renderEmptyMap();
   const started=activeCamps().filter(x=>campDay(x.c)>=1);
   const doneCnt=started.filter(x=>doneToday(x.c)).length;
   const total=S.camps.reduce((a,c)=>a+checkedDaysC(c),0);
