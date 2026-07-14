@@ -380,7 +380,7 @@ body[data-role="b"] #modal-root .box{background:var(--bpanel);color:var(--bink);
 
 <div id="blockbar"></div>
 
-<div id="honest" style="font-size:11px;padding:6px 12px">内测 pilot 版 · 记录仅存于本机 · <b>不构成任何医疗建议</b></div>
+<div id="honest" style="font-size:11px;padding:6px 12px">内测 pilot 版 · 分数与感受仅存本机 · <b>不构成任何医疗建议</b></div>
 
 <main id="view-c"></main>
 
@@ -508,8 +508,8 @@ const CONTENT_CARDS={
 const ANCHORS=['睁眼下床','坐下工位','上完厕所','饭前坐下','早 8 点提醒'];
 const WEAKDAYS=['加班晚归的那天','周末睡懒觉那天','出差在路上那天','聚餐应酬那天','说不好，看运气'];
 const CAPTIONS=[
- '我在参加 21 天喝水营，一起来打卡呀，互相监督更容易坚持～',
- '每天就喝一杯水、点一下，我已经坚持 {N} 天了，你也来陪我一段？',
+ '我在参加 21 天习惯打卡营，一起来呀，互相监督更容易坚持～',
+ '每天花 5 秒点一下，我已经坚持 {N} 天了，你也来陪我一段？',
  '拉你不是有什么好处，纯粹想有个人陪我打卡。',
  '给爸妈也发了一个，一家人一起养个小习惯挺好的。',
 ];
@@ -973,15 +973,19 @@ function renderQuiz(){
       </div>
     </div>`;
 }
+let answerLock=false;
 function answer(i){
+  if(answerLock) return;                                  /* 过场动画期间锁住，避免替未显示的下一题作答 */
   const idx=S.selfcheck.answers.length, q=QUESTIONS[idx];
+  if(idx>=QUESTIONS.length||!q||!q.opts[i]) return;
   S.selfcheck.answers.push({dim:q.dim,score:q.opts[i][1]}); save();
   const per=dimProgress(), justDone=per[q.dim]===3;
   if(justDone&&idx<QUESTIONS.length-1){
     const d=DIMS[DIM_IDX[q.dim]];
     const ov=h(`<div class="dim-pass"><div style="text-align:center"><div class="big">${ICN(d.key,'g',60)}</div><p>${d.pass}</p></div></div>`);
     document.body.appendChild(ov.firstElementChild);
-    setTimeout(()=>{document.querySelector('.dim-pass')?.remove();render();},950);
+    answerLock=true;
+    setTimeout(()=>{document.querySelector('.dim-pass')?.remove();answerLock=false;render();},950);
   }else render();
 }
 function finishQuiz(){
@@ -1132,8 +1136,8 @@ function renderJoin(){
 }
 function setAnchor(a){S.draft.anchor=a;save();track('anchor_set',{anchor:a});render();}
 function setWeak(w){S.draft.weakDay=w;save();render();}
-function signPact(){S.draft.pact=true;save();render();}
-function day0(){S.draft.day0=true;save();track('day0_checkin',{theme:S.draft.theme});render();}
+function signPact(){ if(!S.draft||!S.draft.anchor||!S.draft.weakDay) return; S.draft.pact=true;save();render();}
+function day0(){ if(!S.draft||!S.draft.pact) return; S.draft.day0=true;save();track('day0_checkin',{theme:S.draft.theme});render();}
 function newMid(){ return Array.from(crypto.getRandomValues(new Uint8Array(6))).map(b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join(''); }
 let joiningCamp=false;
 async function enterCamp(){
@@ -1151,6 +1155,7 @@ async function enterCamp(){
       else toast(((r&&r.error)||'营地暂时联不上')+'（本次先记在手机里）');
     }catch(e){ toast('营地暂时联不上，本次先记在手机里'); }
   }
+  if(S.draft!==dft){ save(); return; }  /* await 期间用户已「先不加」或切换主题：不建这个营（服务端孤儿成员无 optin、不进看板） */
   if(activeThemes().has(camp.theme)){ S.draft=null; S.cstage='camp'; save(); render(); return; }  /* await 期间可能已入同主题营 */
   S.camps.push(camp);
   track('camp_join',{theme:camp.theme,campId:camp.campId,mid:camp.mid});
@@ -1213,10 +1218,12 @@ function doneToday(c){ const d=Math.min(campDay(c),21); return d>=1&&!!c.checkin
 /* ---------- S6 营内（今日 / 地图 / 我的） ---------- */
 function renderCamp(){
   /* 无营时不再跳回 onboarding：三个 tab 各自显示空态，底部栏保持常驻可点 */
-  ({today:renderToday,map:renderMap,me:renderMe})[S.ctab||'today']();
+  ({today:renderToday,map:renderMap,me:renderMe})[['today','map','me'].includes(S.ctab)?S.ctab:'today']();
 }
 /* 无营空态：今日 / 地图各给一个引导入口 */
 function emptyCTA(){
+  if(S.draft&&S.draft.theme) return `<button class="cbtn" style="margin-top:18px" onclick="S.cstage='join';save();render()">继续加入 ${esc(themeOf(S.draft.theme).name)} →</button>`;
+  if(S.selfcheck.answers.length&&!S.selfcheck.done) return `<button class="cbtn" style="margin-top:18px" onclick="startQuiz()">继续自检（第 ${S.selfcheck.answers.length+1} 题）→</button>`;
   return S.selfcheck.done
     ? `<button class="cbtn" style="margin-top:18px" onclick="S.cstage='match';save();render()">选一个习惯营 →</button>`
     : `<button class="cbtn" style="margin-top:18px" onclick="startQuiz()">先做个 5 分钟自检 →</button>`;
@@ -1442,7 +1449,10 @@ function renderMe(){
       ${S.selfcheck.done&&S.selfcheck.scores
         ? `<button class="cbtn sec" onclick="S.cstage='report';save();render()">回看我的报告</button>
       <button class="cbtn ghost" style="margin-top:8px" onclick="restartQuiz()">重新做一次自检</button>`
-        : `<button class="cbtn sec" onclick="restartQuiz()">去做生活方式自检</button>`}
+        : (S.selfcheck.answers.length
+          ? `<button class="cbtn sec" onclick="startQuiz()">继续自检（第 ${S.selfcheck.answers.length+1} 题）</button>
+      <button class="cbtn ghost" style="margin-top:8px" onclick="restartQuiz()">重新开始</button>`
+          : `<button class="cbtn sec" onclick="startQuiz()">去做生活方式自检</button>`)}
     </div>
 
     <div class="c-card">
@@ -1464,7 +1474,7 @@ function renderMe(){
       ${S.camps.map((c,i)=>{const over=campDay(c)>21;return `
       <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-top:1px dashed var(--line)">
         ${ICN(c.theme,'g',18)}
-        <div style="flex:1;font-size:13px"><b>${themeOf(c.theme).name}</b><br><span class="small-note num">营 ${esc(c.campId)} · ${over?'已结营':`第 ${Math.min(campDay(c),21)}/21 天`}${API.on&&c.srv?(c.srv.needsReauth?' · <span style="color:var(--accent)">同步已停（记录被营主删除，重拨上方开关可恢复）</span>':(c.srv.ended?' · 营期结束，同步通道已关':(c.srv.pending?' · <span style="color:var(--accent)">待同步</span>':' · 已自动同步'))):''}</span></div>
+        <div style="flex:1;font-size:13px"><b>${themeOf(c.theme).name}</b><br><span class="small-note num">营 ${esc(c.campId)} · ${over?'已结营':`第 ${Math.min(campDay(c),21)}/21 天`}${API.on&&c.srv?(c.srv.needsReauth?' · <span style="color:var(--warn)">同步已停（记录被营主删除，重拨上方开关可恢复）</span>':(c.srv.ended?' · 营期结束，同步通道已关':(c.srv.pending?' · <span style="color:var(--warn)">待同步</span>':' · 已自动同步'))):''}</span></div>
         ${over?`<span class="small-note">通道已关闭</span>`:`<button class="cbtn sec" style="width:auto;padding:8px 13px;margin:0;font-size:13px;box-shadow:none" onclick="showAuthCode(${i})">生成记录码</button>`}
       </div>`;}).join('')}
       <p class="small-note">码里只有：营编号、成员编号、你的称呼、打卡日期与天数。分数、雷达、感受在码的结构里<b>不存在</b>。</p>`:`
@@ -1472,11 +1482,11 @@ function renderMe(){
       ${S.auth.log.length?`<details class="edu-card" style="margin-top:10px"><summary>操作记录（${S.auth.log.length}）</summary><div class="body">${S.auth.log.map(l=>`<div class="num" style="font-size:11.5px">${l.t.slice(0,19).replace('T',' ')} · ${l.act==='auth_grant'?'开启':'撤回'}「${l.scope}」</div>`).join('')}</div></details>`:''}
     </div>
 
-    <div class="c-card">
+    ${S.camps.length?`<div class="c-card">
       <p class="c-kicker">邀请同行</p>
       <button class="cbtn sec" style="margin-top:6px" onclick="openShare('companion')">给在乎的人留同行位</button>
       <p class="small-note">只带打卡记录，不带画像与感受。</p>
-    </div>
+    </div>`:''}
 
     ${(anyOver21||anyEnded)?`
     <div class="c-card">
@@ -1508,9 +1518,14 @@ function renderMe(){
 }
 async function clearAllData(){
   if(!confirm('清空本机全部记录？不可恢复。')) return;
-  /* 先把未送达的「退营」凭证打到服务端（否则清空后再无凭证，营主永远看得到已退营的你） */
-  if(API.on&&Array.isArray(S.leftRevoke)&&S.leftRevoke.length){
-    try{ await Promise.all(S.leftRevoke.map(t=>apiPost('/api/c/leave',{},t))); }catch(e){}
+  /* 退营终态守护：有未送达的退营凭证时，必须先确认送达再清空——否则清掉唯一凭证，营主将永远看得到已退营的你 */
+  if(Array.isArray(S.leftRevoke)&&S.leftRevoke.length){
+    if(!API.on){ toast('你还有未送达的退营请求；请联网后自动完成，再清空本机'); return; }
+    for(const t of [...S.leftRevoke]){
+      try{ const r=await apiPost('/api/c/leave',{},t); if(r&&(r.ok||r.code===401||r.code===410)) S.leftRevoke=S.leftRevoke.filter(x=>x!==t); }catch(e){}
+    }
+    save();
+    if(S.leftRevoke.length){ toast('退营请求还没送达服务器，先别清空——联网后会自动完成'); return; }
   }
   localStorage.removeItem(LS_KEY); location.reload();
 }
@@ -1619,6 +1634,7 @@ function openShare(type,ci){
     c=(ci!==undefined)?S.camps[ci]:null;
     if(!c) type='selfcheck';
   }
+  if(type==='selfcheck'&&!(S.selfcheck.done&&S.selfcheck.scores)){ toast('先做完自检，才能生成这张卡'); return; }
   const days=c?checkedDaysC(c):0, st=c?streakC(c):0;
   const mapTags=c?Object.fromEntries(Object.entries(c.checkins).map(([k,v])=>[k,v.tag])):{};
   const payload = type==='selfcheck' ? {type,date:todayStr()} : {type,dayN:days,streak:st,mapTags,theme:(c&&c.theme)||'water'};

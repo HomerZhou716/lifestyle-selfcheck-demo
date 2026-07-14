@@ -167,7 +167,7 @@ function validatePublicText(v){ return !(THERAPY_RE.test(v||'')||NAMING_BLOCKLIS
 const LS_KEY='lifestyle_b_v1';
 const DEFAULT_STATE={
   btab:'camps', coach:'', activeCamp:null, boardView:'work',
-  srvToken:'', srvUser:'', pendingDel:[],
+  srvToken:'', srvUser:'', pendingDel:[], leftBlock:[],
   camps:[], students:[], outreach:[], tombstones:[],
   risk:{reject:5,quit:5,complain:1,revoke:2}, riskLock:false, riskLockBy:'',
   events:[],
@@ -191,6 +191,7 @@ function load(){
   st.students=(Array.isArray(st.students)?st.students:[]).filter(x=>x&&typeof x==='object'&&typeof x.campId==='string'&&Array.isArray(x.days));
   st.tombstones=(Array.isArray(st.tombstones)?st.tombstones:[]).filter(t=>typeof t==='string');
   st.pendingDel=(Array.isArray(st.pendingDel)?st.pendingDel:[]).filter(x=>x&&typeof x.campId==='string'&&typeof x.mid==='string');
+  st.leftBlock=(Array.isArray(st.leftBlock)?st.leftBlock:[]).filter(t=>typeof t==='string');
   return st;
 }
 function save(){ try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){} }
@@ -287,6 +288,8 @@ async function srvRefresh(){
       /* retired（退营 user_left / 被删 tombstone）：加本地墓碑挡旧码重导入，并移除对应本机行（含离线自报快照） */
       const retired=Array.isArray(b.retired)?b.retired:[];
       retired.forEach(mid=>{ const k=camp.id+'|'+mid; if(!S.tombstones.includes(k)) S.tombstones.push(k); });
+      /* left（顾客主动退营）=永久墓碑：旧记录码一律硬拒，不给「确认已重新授权」的复活口子 */
+      (Array.isArray(b.left)?b.left:[]).forEach(mid=>{ const k=camp.id+'|'+mid; if(!S.leftBlock.includes(k)) S.leftBlock.push(k); });
       S.students=S.students.filter(st=>{
         if(st.campId!==camp.id) return true;
         if(retired.includes(st.mid)) return false;            /* 服务端已退营/删除 → 本机一律移除 */
@@ -469,6 +472,10 @@ function importCode(){
   let sanitized=false;
   if(!validatePublicText(nick)){ nick='学员'+d.mid.slice(0,4); sanitized=true; }   /* 昵称词表消毒：疗效词/禁词不入看板与播报 */
   const tkey=d.campId+'|'+d.mid;
+  if(S.leftBlock.includes(tkey)){   /* 顾客主动退营=终态：旧码硬拒，不给复活口子（重新参加需重新入营=新成员） */
+    track('import_reject',{reason:'user_left'});
+    $('#importmsg').innerHTML=`<div class="blocked-b">${ICN('ban','bad',15)}这位学员已主动退营，旧记录码不能再导入。若她想继续，请用营链接重新入营。</div>`; return;
+  }
   if(S.tombstones.includes(tkey)){
     if(!confirm('这位学员此前已撤回并被删除。确认她已重新授权（重新发码给你），才能再次导入。确认导入？')) {
       $('#importmsg').innerHTML='<div class="blocked-b">已取消：撤回学员需重新授权后才可导入。</div>'; return;
