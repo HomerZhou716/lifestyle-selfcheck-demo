@@ -912,9 +912,18 @@ const VC=$('#view-c');
 function footNote(){ return `<p class="foot-note">${FOOT}</p>`; }
 
 function renderC(){
-  $('#ctabbar').classList.toggle('hide',!(S.cstage==='camp'));
   const fn={welcome:renderWelcome,quiz:renderQuiz,report:renderReport,match:renderMatch,join:renderJoin,camp:renderCamp}[S.cstage]||renderWelcome;
   fn();
+  renderCTabs();
+}
+/* 底部菜单栏：只要有营就常驻在所有页面；点任一 tab 跳回营内对应页 */
+function renderCTabs(){
+  const bar=$('#ctabbar'), show=S.camps.length>0;
+  bar.classList.toggle('hide',!show);
+  if(!show){ bar.innerHTML=''; return; }
+  const active=(S.cstage==='camp')?S.ctab:'';
+  bar.innerHTML=[['today','今日'],['map','地图'],['me','我的']]
+    .map(([k,lab])=>`<button class="${active===k?'on':''}" onclick="S.cstage='camp';S.ctab='${k}';save();render()">${ICN(k,active===k?'g':'',23)}${lab}</button>`).join('');
 }
 
 /* ---------- S1 欢迎 ---------- */
@@ -1208,9 +1217,6 @@ function renderCamp(){
     S.cstage=S.draft?'join':(S.selfcheck.done?'match':'welcome');
     save(); render(); return;
   }
-  const bar=$('#ctabbar');
-  bar.innerHTML=[['today','今日'],['map','地图'],['me','我的']]
-    .map(([k,lab])=>`<button class="${S.ctab===k?'on':''}" onclick="S.ctab='${k}';save();render()">${ICN(k,S.ctab===k?'g':'',23)}${lab}</button>`).join('');
   ({today:renderToday,map:renderMap,me:renderMe})[S.ctab]();
 }
 function themeOf(k){ return THEMES[k||'water']; }
